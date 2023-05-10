@@ -13,7 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 
-public class sketch_230510a extends PApplet {
+public class Processing extends PApplet {
 
 public void setup(){
   /* size commented out by preprocessor */;
