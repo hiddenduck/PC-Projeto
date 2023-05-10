@@ -4,5 +4,12 @@ void setup(){
 }
 
 void draw(){
-  background(204);
+  background(100);
+  if(mousePressed == true){
+    fill(255);
+  } else {
+    fill(0);
+  }
+  
+  rect(25, 25, 50, 50);
 }
