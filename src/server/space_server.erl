@@ -42,7 +42,7 @@ user(Sock, Room, RM) ->
                 "/room " ++ Rest -> 
                     RoomName = Rest -- "\n",
                     io:format("entered room ~n", []),
-                    RM ! {get, RoomName, self()},
+                    RM ! {get_room, RoomName, self()},
                     NewRoom = receive {room, R} -> R end;
                 _ ->
                     Room ! {line, Data},
@@ -62,9 +62,9 @@ rm(Rooms) ->
                 {ok, Room} ->
                     NewRooms = Rooms;
                 error ->
-                    Room = spawn(fun() -> room([]) end),
+                    Room = spawn(fun() -> room([From]) end),
                     NewRooms = maps:put(Name, Room, Rooms)
             end
     end,
-    From ! Room,
+    From ! {room, Room},
     rm(NewRooms).
