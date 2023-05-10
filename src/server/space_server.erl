@@ -7,7 +7,7 @@ start(Port) -> register(?MODULE, spawn(fun() -> server(Port) end)).
 stop() -> ?MODULE ! stop.
 
 server(Port) ->
-    {ok, LSock} = gen_tcp:listen(Port, [binary, {packet, line}, {reuseaddr, true}]),
+    {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
     Room = spawn(fun() -> room([]) end),
     RM = spawn(fun() -> rm(#{"Lobby" => Room}) end),
     spawn(fun() -> acceptor(LSock, Room, RM) end),
@@ -24,7 +24,7 @@ room(Pids) ->
         {enter, Pid} ->
             io:format("user entered~n", []),
             room([Pid | Pids]);
-        {line, Data} = Msg ->
+        {line, _} = Msg ->
             io:format("received ~p~n", [Msg]),
             [Pid ! Msg || Pid <- Pids], room(Pids);
         {leave, Pid} ->
@@ -41,6 +41,7 @@ user(Sock, Room, RM) ->
             case Data of
                 "/room " ++ Rest -> 
                     RoomName = Rest -- "\n",
+                    io:format("entered room ~n", []),
                     RM ! {get, RoomName, self()},
                     NewRoom = receive {room, R} -> R end;
                 _ ->
