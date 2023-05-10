@@ -6,11 +6,14 @@
 		logout/1,
 		online/0,
 		test/0,
-		handle/2]).
+		handle/2,
+		level_up/1,
+		level_down/1]).
 
 
 start() ->
-	register(?MODULE, spawn(fun() -> loop(#{}) end)). 
+	register(?MODULE, spawn(fun() -> loop(#{}) end)), 
+	register(levels, spawn(fun() -> loop_levels(#{}) end)).
 
 
 invoke(Request) ->
@@ -20,6 +23,15 @@ invoke(Request) ->
 
 create_account(Username, Passwd) ->
 	invoke({create_account, Username, Passwd}).
+	
+level_up(Username) ->
+	levels ! {level_up, Username, self()},
+	receive {Status, New_Level, levels} -> {Status, New_Level} end.
+
+level_down(Username) ->
+	levels ! {level_down, Username, self()},
+	receive {Status, New_Level, levels} -> {Status, New_Level} end.
+
 
 close_account(Username, Passwd) ->
 	invoke({close_account, Username, Passwd}).
@@ -38,9 +50,10 @@ handle(Request, Map) ->
 		{create_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				error -> 
-					{ok, Map#{Username => {Passwd,false}}};
+					levels ! {set_level, Username, self()},
+					{ok, 1, Map#{Username => {Passwd,false}}};
 				_ ->
-					{user_exists, Map}
+					{user_exists, 0, Map}
 			end;
 		{close_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
@@ -71,19 +84,67 @@ handle(Request, Map) ->
 
 loop(Map) ->
 	receive
+		{{create_account, Username, Passwd}, From} ->
+			{Res, Level, NextState} = handle({create_account, Username, Passwd}, Map),
+			From ! {{Res,Level}, ?MODULE},
+			loop(NextState);
+
 		{Request, From} ->
 			{Res, NextState} = handle(Request, Map),
 			From ! {Res, ?MODULE},
 			loop(NextState)
+		
 	end.
+
+loop_levels(Map) ->
+	receive
+		{set_level, Username, From} ->
+			case maps:find(Username, Map) of
+				error ->
+					From ! {ok,1, levels}, 
+					loop_levels(maps:put(Username, 1, Map));
+				{ok, Level} ->
+					From ! {user_exists, Level, levels},
+					loop_levels(Map)
+			end;
+		{level_up, Username, From} ->
+			case maps:find(Username, Map) of
+				{ok, Level} ->
+					From ! {ok, Level+1, levels}, 
+					loop_levels(maps:put(Username, Level+1, Map));
+				error ->
+					From ! {invalid_user, 0, levels},
+					loop_levels(Map)
+			end;
+		{level_down, Username, From} ->
+			case maps:find(Username, Map) of
+				{ok, 1} ->
+					From ! {ok,1, levels}, 
+					loop_levels(Map);
+				{ok, Level} ->
+					From ! {ok, Level-1, levels},
+					loop_levels(maps:put(Username, Level-1, Map));
+				error ->
+					From ! {invalid_user, 0, levels},
+					loop_levels(Map)
+			end
+	end.
+
 
 test() ->
 	start(),
 	create_account("hugo_rocha", "pw123"),
 	create_account("hugo_rocha_sec", "secondpw"),
 	login("hugo_rocha", "pw123"),
-	R = login("hugo_rocha_sec", "assdas"),
-	R.
+	login("hugo_rocha_sec", "assdas"),
+	R = level_up("hugo_rocha"),
+	U = level_up("hugo_rocha"),
+	I = level_up("hugo_rocha"),
+	O = level_up("hugo_rocha"),
+	S = create_account("hugo_rocha", "xd"),
+	K = level_up("hugo_rochada"),
+	D = level_down("hugo_rocha"),
+	D.
 
 
 
