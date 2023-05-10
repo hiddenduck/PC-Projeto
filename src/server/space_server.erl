@@ -1,4 +1,4 @@
--module(server).
+-module(space_server).
 -export([start/1, stop/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
@@ -64,6 +64,7 @@ user(Sock, Room, RM) ->
                     New_room_name = Rest -- "\n",
                     NewRoom = get_room(New_room_name, RM),
                     NewRoom ! {enter, New_room_name, self()},
+                    Room ! {leave, self()},
                     user(Sock, NewRoom, RM);
                 _ -> 
                     Room ! {line, Data},
