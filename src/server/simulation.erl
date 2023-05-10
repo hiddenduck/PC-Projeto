@@ -9,11 +9,12 @@
 
 % Note- o cos e o sin recebem radianos %
 start_game() ->
-    P1 = {{1, 0}, {0,0}, 0, math:pi()},
-    P2 = {{-1, 0}, {0, 0}, 0, math:pi()},
-    State = spawn(fun() -> state({P1, P2}) end),
-    Ticker = spawn(fun() -> ticker(State) end),
-    Simulator = spawn(fun() -> simulator({P1, P2}) end).
+    P1 = {{0, 0}, math:pi()},
+    P2 = {{0, 0}, math:pi()},
+    Player1_sim = spawn(fun() -> simulator(P1) end),
+    Player2_sim = spawn(fun() -> simulator(P2) end),
+    spawn(fun() -> ticker({1,0}, {-1, 0}, Player1_sim, Player2_sim) end),
+    {Player1_sim, Player2_sim}.
 
 sleep(T) ->
     receive
@@ -21,29 +22,43 @@ sleep(T) ->
         true
 end.
 
-ticker(State) ->
-    sleep(100),
-    State ! {give_state, self()},
-    receive
-        {GameState, State} -> simulator(GameState),
-    ticker(State)
-end.
+ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
+    
+    sleep(10000),
 
-state({{X, Y}, {Vx, Vy}, Alfa}) -> 
+    Player1_sim ! {return_state, self()},
     receive
-        {give_state, From} -> 
-            From ! {{{X, Y}, {Vx, Vy}, Alfa}, self()};
-        {increase_speed_placeholder, Delta_x, Delta_y} ->
-            state({{X, Y}, {Vx+Delta_x, Vy+Delta_y}, Alfa});
-        {change_angle_placeholder, Delta} ->
-            state({{X, Y}, {Vx, Vy}, Alfa+Delta})
+        PlayerState1 ->
+            {X1_, Y1_} = mv(Pos1, PlayerState1),
+            io:format("State player1 ~p~n", [{{X1_, Y1_}, PlayerState1}])
+    end,
+    Player2_sim ! {return_state, self()},
+    receive
+        PlayerState2 ->
+            {X2_, Y2_} = mv(Pos2, PlayerState2),
+            io:format("State player2 ~p~n", [{{X2_, Y2_}, PlayerState2}])
+    end,
+    ticker({X1_, Y1_}, {X2_, Y2_}, Player1_sim, Player2_sim).
+
+    
+
+simulator(PlayerState) ->
+    receive
+        {speed_up, Delta_x, Delta_y} ->
+            {{Vx, Vy}, Alfa} = PlayerState,
+            NewPlayerState = {{Vx+Delta_x, Vy+Delta_y}, Alfa},
+            simulator(NewPlayerState);
+        {change_direction, Delta} ->
+            {{Vx, Vy}, Alfa} = PlayerState,
+            NewPlayerState = {{Vx, Vy}, Alfa+Delta},
+            simulator(NewPlayerState);
+        {return_state, From} ->
+            From ! PlayerState,
+            simulator(PlayerState)
     end.
 
-simulator({P1, P2}) ->
-    {{X1, Y1}, {Vx1, Vy1}, Alfa1} = P1,
-    {{X2, Y2}, {Vx2, Vy2}, Alfa2} = P2,
+mv(Pos, State) ->
+    {X, Y} = Pos,
+    {{Vx, Vy}, _} = State,
+    {X+Vx, Y+Vy}.
 
-    P1_ = {{X1+Vx1, Y1+Vy1}, {Vx1, Vy1}, Alfa1},
-    P2_ = {{X2+Vx2, Y2+Vy2}, {Vx2, Vy2}, Alfa2},
-    
-    {P1_, P2_}.
