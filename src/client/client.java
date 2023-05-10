@@ -13,7 +13,6 @@ public class client {
             ConnectionManager cm = ConnectionManager.start(socket);
             
             // new Thread();
-
         } catch(Exception e){
             e.printStackTrace();
             System.exit(0);
