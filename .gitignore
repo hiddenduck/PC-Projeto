@@ -1,5 +1,6 @@
 html/
 *.exe
+.idea
 *.out
 latex/
 out
