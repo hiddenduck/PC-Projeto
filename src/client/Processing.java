@@ -27,11 +27,19 @@ private void startMenu(){
   background(this.startmenu);
   textAlign(CENTER);
   text("Welcome to SpaceWars",width/2.0f,60);
+}
 
+private void registerMenu(){
+  background(this.startmenu);
+  textAlign(LEFT);
+  text("Username:", width/3.0f, 60);
+  rect(width/1000.0f, height/3.0f, 1000, 100);
+  rect(width/1000.0f, height/2.0f, 1000, 100);
 }
 
 public void draw(){
-  startMenu();
+  //startMenu();
+  registerMenu();
 }
 
   public void settings() {
