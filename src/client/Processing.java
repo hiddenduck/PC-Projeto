@@ -13,18 +13,26 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 
-public class Processing extends PApplet implements Runnable{
+public class Processing extends PApplet{
 
 public void setup(){
   /* size commented out by preprocessor */;
   frameRate(30);
 }
 
-public void draw(){
+private void startMenu(){
   background(204);
+  textAlign(CENTER);
+  text("Welcome to SpaceWars",width/2.0f,60);
 }
 
-  public void settings() { size(800, 800); }
+public void draw(){
+  startMenu();
+}
+
+  public void settings() {
+    size(800, 800);
+  }
 
   public void keyPressed(){
     switch (this.key){
@@ -41,9 +49,22 @@ public void draw(){
     }
   }
 
-  @Override
-  public void run() {
-    String[] processingArgs = {"Processing"};
-    PApplet.runSketch(processingArgs, new Processing());
+  public static void main(String[] args) {
+    //if(args.length < 2)
+    //    System.exit(1);
+
+    //String host = args[0];
+    //int port = Integer.parseInt(args[1]);
+
+    try{
+      //Socket socket = new Socket(host, port);
+      //ConnectionManager cm = ConnectionManager.start(socket);
+
+      String[] processingArgs = {"Processing"};
+      PApplet.runSketch(processingArgs, new Processing());
+    } catch(Exception e){
+      e.printStackTrace();
+      System.exit(0);
+    }
   }
 }
