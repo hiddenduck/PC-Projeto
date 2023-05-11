@@ -7,8 +7,8 @@
 start_game() ->
     P1 = {{0, 0}, math:pi()},
     P2 = {{0, 0}, math:pi()},
-    Player1_sim = spawn(fun() -> simulator(P1) end),
-    Player2_sim = spawn(fun() -> simulator(P2) end),
+    Player1_sim = spawn(fun() -> simulator(P1, true) end),
+    Player2_sim = spawn(fun() -> simulator(P2, true) end),
     spawn(fun() -> ticker({1,0}, {-1, 0}, Player1_sim, Player2_sim) end),
     {Player1_sim, Player2_sim}.
 
@@ -28,9 +28,10 @@ end.
 %game ticks are defined by number in function sleep([ms])
 %curently receives PlayerState raw and no rubber bun in future should make shure only simulator
 %is allowed to send messages to it
+%Player 1 may be barred from puting inputs but 2 no
 ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
     
-    sleep(10000),
+    sleep(1000),
 
     Player1_sim ! {return_state, self()},
     receive
@@ -55,19 +56,20 @@ ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
 %NOTE Alfa is in radians because erlang is a chad language
 %i decided to check for changes first and only after for return 
 %is this better? i dont know
-simulator(PlayerState) ->
+%TODO change return state priority to Max
+simulator(PlayerState, Flag) ->
     receive
-        {speed_up, Delta} ->
+        {speed_up, Delta} when Flag ->
             {{Vx, Vy}, Alfa} = PlayerState,
-            NewPlayerState = {{Vx+Delta*math:con(Alfa), Vy+Delta*math:sin(Alfa)}, Alfa},
-            simulator(NewPlayerState);
-        {change_direction, Delta} ->
+            NewPlayerState = {{Vx+Delta*math:cos(Alfa), Vy+Delta*math:sin(Alfa)}, Alfa},
+            simulator(NewPlayerState, false);
+        {change_direction, Delta} when Flag->
             {{Vx, Vy}, Alfa} = PlayerState,
             NewPlayerState = {{Vx, Vy}, Alfa+Delta},
-            simulator(NewPlayerState);
+            simulator(NewPlayerState, false);
         {return_state, From} ->
             From ! PlayerState,
-            simulator(PlayerState)
+            simulator(PlayerState, true)
     end.
 
 %mv simply calculates the new positions for a player after one game tick
@@ -75,4 +77,10 @@ mv(Pos, State) ->
     {X, Y} = Pos,
     {{Vx, Vy}, _} = State,
     {X+Vx, Y+Vy}.
+
+
+
+
+
+
 
