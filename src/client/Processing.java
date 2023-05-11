@@ -12,18 +12,22 @@ import java.io.PrintWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.util.Map;
 
 public class Processing extends PApplet{
-
+  private PImage startmenu;
 public void setup(){
   /* size commented out by preprocessor */;
   frameRate(30);
+  textSize(65);
+  this.startmenu = loadImage("images/space.jpg");
 }
 
 private void startMenu(){
-  background(204);
+  background(this.startmenu);
   textAlign(CENTER);
   text("Welcome to SpaceWars",width/2.0f,60);
+
 }
 
 public void draw(){
