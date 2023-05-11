@@ -8,7 +8,8 @@
 		test/0,
 		handle/2,
 		level_up/1,
-		level_down/1]).
+		level_down/1,
+		start_match/2]).
 
 
 start() ->
@@ -32,6 +33,9 @@ level_down(Username) ->
 	levels ! {level_down, Username, self()},
 	receive {Status, New_Level, levels} -> {Status, New_Level} end.
 
+start_match(FstUsername, SecUsername) ->
+	levels ! {start_match, FstUsername, SecUsername, self()},
+	receive {Status, FstLevel, SecLevel, levels} -> {Status, FstLevel, SecLevel} end.
 
 close_account(Username, Passwd) ->
 	invoke({close_account, Username, Passwd}).
@@ -127,6 +131,25 @@ loop_levels(Map) ->
 				error ->
 					From ! {invalid_user, 0, levels},
 					loop_levels(Map)
+			end;
+		{start_match, FstUsername, SecUsername, From} ->
+			case maps:find(FstUsername, Map) of 
+				error ->
+					From ! {invalid_fstuser, 0, 0, levels},
+					loop_levels(Map);
+				{ok, Level} ->
+					case maps:find(SecUsername, Map) of 
+						error ->
+							From ! {invalid_secuser, 0, 0, levels},
+							loop_levels(Map);
+						{ok, Level} ->
+							From ! {ok, Level, Level, levels},
+							loop_levels(Map);
+						{ok, OtherLevel} ->
+							From ! {different_levels, Level, OtherLevel, levels},
+							loop_levels(Map)
+
+					end
 			end
 	end.
 
@@ -136,7 +159,7 @@ test() ->
 	create_account("hugo_rocha", "pw123"),
 	create_account("hugo_rocha_sec", "secondpw"),
 	login("hugo_rocha", "pw123"),
-	login("hugo_rocha_sec", "assdas"),
+	login("hugo_rocha_sec", "secondpw"),
 	R = level_up("hugo_rocha"),
 	U = level_up("hugo_rocha"),
 	I = level_up("hugo_rocha"),
@@ -144,7 +167,11 @@ test() ->
 	S = create_account("hugo_rocha", "xd"),
 	K = level_up("hugo_rochada"),
 	D = level_down("hugo_rocha"),
-	D.
+	level_up("hugo_rocha_sec"),
+	level_up("hugo_rocha_sec"),
+	level_up("hugo_rocha_sec"),
+	T = start_match("hugo_rocha", "hugo_rocha_sec"),
+	{R,U,I,O,S,K,D, T}.
 
 
 
