@@ -38,8 +38,8 @@ private void registerMenu(){
 }
 
 public void draw(){
-  //startMenu();
-  registerMenu();
+  startMenu();
+  //registerMenu();
 }
 
   public void settings() {
