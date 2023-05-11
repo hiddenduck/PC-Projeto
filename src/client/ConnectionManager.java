@@ -5,9 +5,9 @@ import java.io.PrintWriter;
 import java.net.*;
 
 public class ConnectionManager implements AutoCloseable{
-    BufferedReader input;
-    PrintWriter output;
-    Socket socket;
+    private BufferedReader input;
+    private PrintWriter output;
+    private Socket socket;
 
     private ConnectionManager(BufferedReader input, PrintWriter output, Socket socket){
         this.input = input;
@@ -18,9 +18,8 @@ public class ConnectionManager implements AutoCloseable{
     public static ConnectionManager start(Socket socket) throws IOException{
         BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         PrintWriter output = new PrintWriter(socket.getOutputStream());
-        ConnectionManager connectionManager = new ConnectionManager(input, output, socket);
         
-        return connectionManager;
+        return new ConnectionManager(input, output, socket);
     }
 
     public void send(String type, String message) throws IOException{

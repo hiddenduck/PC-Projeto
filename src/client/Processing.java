@@ -13,7 +13,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 
-public class Processing extends PApplet {
+public class Processing extends PApplet implements Runnable{
 
 public void setup(){
   /* size commented out by preprocessor */;
@@ -24,15 +24,26 @@ public void draw(){
   background(204);
 }
 
-
   public void settings() { size(800, 800); }
 
-  static public void main(String[] passedArgs) {
-    String[] appletArgs = new String[] { "sketch_230510a" };
-    if (passedArgs != null) {
-      PApplet.main(concat(appletArgs, passedArgs));
-    } else {
-      PApplet.main(appletArgs);
+  public void keyPressed(){
+    switch (this.key){
+      case('a'):
+        //new Communicator();
+        break;
+
+      case('w'):
+        break;
+
+      case('d'):
+        break;
+
     }
+  }
+
+  @Override
+  public void run() {
+    String[] processingArgs = {"Processing"};
+    PApplet.runSketch(processingArgs, new Processing());
   }
 }

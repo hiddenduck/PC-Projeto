@@ -1,6 +1,6 @@
 import java.net.*;
 
-public class client {
+public class Client {
     public static void main(String[] args) {
         if(args.length < 2)
             System.exit(1);
@@ -9,10 +9,10 @@ public class client {
         int port = Integer.parseInt(args[1]);
         
         try{
-            Socket socket = new Socket(host, port);
-            ConnectionManager cm = ConnectionManager.start(socket);
+            //Socket socket = new Socket(host, port);
+            //ConnectionManager cm = ConnectionManager.start(socket);
             
-            // new Thread();
+            new Thread(new Processing()).start(); // Desenha no ecrâ
         } catch(Exception e){
             e.printStackTrace();
             System.exit(0);
