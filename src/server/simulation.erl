@@ -31,7 +31,7 @@ end.
 %Player 1 may be barred from puting inputs but 2 no
 ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
     
-    sleep(1000),
+    sleep(5000),
 
     Player1_sim ! {return_state, self()},
     receive
@@ -69,7 +69,9 @@ simulator(PlayerState, Flag) ->
             simulator(NewPlayerState, false);
         {return_state, From} ->
             From ! PlayerState,
-            simulator(PlayerState, true)
+            simulator(PlayerState, true);
+        _ -> 
+            simulator(PlayerState, Flag)
     end.
 
 %mv simply calculates the new positions for a player after one game tick
@@ -77,10 +79,5 @@ mv(Pos, State) ->
     {X, Y} = Pos,
     {{Vx, Vy}, _} = State,
     {X+Vx, Y+Vy}.
-
-
-
-
-
 
 
