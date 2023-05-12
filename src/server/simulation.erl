@@ -1,14 +1,14 @@
 -module(simulation).
 
--export([start_game/0]).
+-export([start_game/0, test/1]).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
 start_game() ->
     P1 = {{0, 0}, math:pi()},
     P2 = {{0, 0}, math:pi()},
-    Player1_sim = spawn(fun() -> simulator(P1, true) end),
-    Player2_sim = spawn(fun() -> simulator(P2, true) end),
+    Player1_sim = spawn(fun() -> simulator(P1, 0) end),
+    Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     spawn(fun() -> ticker({1,0}, {-1, 0}, Player1_sim, Player2_sim) end),
     {Player1_sim, Player2_sim}.
 
@@ -31,7 +31,7 @@ end.
 %Player 1 may be barred from puting inputs but 2 no
 ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
     
-    sleep(5000),
+    sleep(10000),
 
     Player1_sim ! {return_state, self()},
     receive
@@ -57,19 +57,23 @@ ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
 %i decided to check for changes first and only after for return 
 %is this better? i dont know
 %TODO change return state priority to Max
+%
+%Tricky binay math(the prgramer way)
+%00 -> flag-direction, flag-speed
+%checks if flag bit is set to one if so dont do operation
 simulator(PlayerState, Flag) ->
     receive
-        {speed_up, Delta} when Flag ->
+        {speed_up, Delta} when (Flag band 1) == 0 ->
             {{Vx, Vy}, Alfa} = PlayerState,
             NewPlayerState = {{Vx+Delta*math:cos(Alfa), Vy+Delta*math:sin(Alfa)}, Alfa},
-            simulator(NewPlayerState, false);
-        {change_direction, Delta} when Flag->
+            simulator(NewPlayerState, Flag bor 1);
+        {change_direction, Delta} when (Flag band 2) == 0 ->
             {{Vx, Vy}, Alfa} = PlayerState,
             NewPlayerState = {{Vx, Vy}, Alfa+Delta},
-            simulator(NewPlayerState, false);
+            simulator(NewPlayerState, Flag bor 2);
         {return_state, From} ->
             From ! PlayerState,
-            simulator(PlayerState, true);
+            simulator(PlayerState, 0);
         _ -> 
             simulator(PlayerState, Flag)
     end.
@@ -79,5 +83,11 @@ mv(Pos, State) ->
     {X, Y} = Pos,
     {{Vx, Vy}, _} = State,
     {X+Vx, Y+Vy}.
+
+
+test(P)->
+    P ! {change_direction, math:pi()},
+    P ! {speed_up, 1}.
+
 
 
