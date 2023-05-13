@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ConnectionManager implements AutoCloseable{
@@ -16,17 +18,22 @@ public class ConnectionManager implements AutoCloseable{
 
     private final Thread reader;
 
-    private Map<String, Queue<String>> typeMap;
+    private final Lock mapLock;
+    private class TypeQueue{
+        Queue<String> queue = new LinkedList<String>();
 
-    private final ReentrantLock mapLock;
+        Condition c = mapLock.newCondition();
+    }
+
+    private Map<String, TypeQueue> typeMap;
 
     private void fillTypeMap(){ // Encher os tipos logo no inicio, já os conhecemos todos
         this.typeMap = new HashMap<>();
-        this.typeMap.put("pos", new LinkedList<>());
-        this.typeMap.put("box", new LinkedList<>());
-        this.typeMap.put("point", new LinkedList<>());
-        this.typeMap.put("game", new LinkedList<>());
-        this.typeMap.put("account", new LinkedList<>());
+        this.typeMap.put("pos", new TypeQueue());
+        this.typeMap.put("box", new TypeQueue());
+        this.typeMap.put("point", new TypeQueue());
+        this.typeMap.put("game", new TypeQueue());
+        this.typeMap.put("account", new TypeQueue());
     }
 
     private ConnectionManager(BufferedReader input, PrintWriter output, Socket socket){
@@ -39,12 +46,12 @@ public class ConnectionManager implements AutoCloseable{
             String message;
             try {
                 while ((message = input.readLine())!=null) {
-                    Queue<String> typeQueue = this.typeMap.get(message);
+                    TypeQueue typeQueue = this.typeMap.get(message);
                     String[] typeMessage = message.split(":", 2);
                     this.mapLock.lock();
                     try {
-                        //if (typeQueue == null) this.typeMap.put(typeMessage[0], new LinkedList<String>());
-                        typeQueue.add(typeMessage[1]);
+                        typeQueue.queue.add(typeMessage[1]);
+                        typeQueue.c.signal(); // Só vai haver uma thread de cada tipo logo não é preciso signalAll
                     } finally {
                         this.mapLock.unlock();
                     }
@@ -67,11 +74,13 @@ public class ConnectionManager implements AutoCloseable{
         output.flush();
     }
 
-    public String receive(String type) throws IOException{
+    public String receive(String type) throws IOException, InterruptedException{
         this.mapLock.lock();
         try{
-            Queue<String> typeQueue = this.typeMap.get(type);
-            return typeQueue.remove();
+            TypeQueue typeQueue = this.typeMap.get(type);
+            while(typeQueue.queue.isEmpty())
+                typeQueue.c.await();
+            return typeQueue.queue.remove();
         } finally {
             this.mapLock.unlock();
         }
