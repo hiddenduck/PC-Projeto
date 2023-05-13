@@ -78,14 +78,14 @@ public class Processing extends PApplet{
 
   private String menu;
 
-  private String error;
+  private String message;
   private boolean isInGame;
 public void setup(){
   frameRate(30);
   this.menuImage = loadImage("images/space.jpg");
   this.menu = "startMenu";
   this.isInGame = false;
-  this.error = "";
+  this.message = "";
   this.user = new textBox(0, height*0.3f, width, width*0.1f,"Username:");
   this.password = new textBox(0, height*0.45f, width, width*0.1f,"Password:");
 }
@@ -113,7 +113,7 @@ private void startMenu(){
   rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
 }
 
-private void registerMenu(){
+private void logRegMenu(String menuType){
   background(this.menuImage);
   textAlign(CENTER, CENTER);
   fill(206, 235, 251);
@@ -123,14 +123,28 @@ private void registerMenu(){
   this.password.draw();
   textAlign(CENTER, CENTER);
   fill(255,160,122);
-  text(error, width*0.5f, height*0.80f);
+  text(message, width*0.5f, height*0.80f);
+  fill(206, 235, 251);
   triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
-  fill(234, 221, 202);
-  ellipse(width*0.5f,height*0.65f,width*0.1f,height*0.1f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
 }
 
 private void loginMenu(){
   background(this.menuImage);
+  textAlign(CENTER, CENTER);
+  fill(206, 235, 251);
+  textSize(width*0.1f);
+  text("Login Menu",width/2.0f,height*0.05f);
+  this.user.draw();
+  this.password.draw();
+  textAlign(CENTER, CENTER);
+  fill(255,160,122);
+  text(message, width*0.5f, height*0.80f);
+  fill(206, 235, 251);
+  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
 }
 
 public void draw(){
@@ -151,8 +165,12 @@ public void draw(){
     if(!isInGame){
       if(Objects.equals(this.menu, "startMenu")){
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
+          String username = this.user.getText();
+          String password = this.password.getText();
           this.menu = "loginMenu";
         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+          this.user.reset();
+          this.password.reset();
           this.menu = "registerMenu";
         }
       } else if(Objects.equals(this.menu, "registerMenu")){
@@ -163,6 +181,22 @@ public void draw(){
           triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
           triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY))
             this.menu = "startMenu";
+        else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
+          String username = this.user.getText();
+          String password = this.password.getText();
+        } else if(Objects.equals(this.menu, "loginMenu")) {
+          this.user.select(mouseX, mouseY);
+          this.password.select(mouseX, mouseY);
+          if (triangleArea(width * 0.05f, 0, 0, width * 0.025f, width * 0.05f, width * 0.05f) ==
+                  triangleArea(mouseX, mouseY, 0, width * 0.025f, width * 0.05f, width * 0.05f) +
+                          triangleArea(width * 0.05f, 0, mouseX, mouseY, width * 0.05f, width * 0.05f) +
+                          triangleArea(width * 0.05f, 0, 0, width * 0.025f, mouseX, mouseY))
+            this.menu = "startMenu";
+          else if (mouseX > width * 0.45f && mouseX < width * 0.45f + width * 0.1f && mouseY > height * 0.65f && mouseY < height * 0.65f + height * 0.1f) {
+            String username = this.user.getText();
+            String password = this.password.getText();
+          }
+        }
       }
     }
   }
