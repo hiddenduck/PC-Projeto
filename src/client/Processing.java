@@ -15,6 +15,65 @@ import java.io.OutputStream;
 import java.io.IOException;
 
 public class Processing extends PApplet{
+
+  private class textBox{
+    private float x, y, widthBox, heightBox;
+    private String title;
+
+    private boolean active;
+    private StringBuilder text;
+    private textBox(float x, float y, float width, float height, String title){
+      this.x = x;
+      this.y = y;
+      this.widthBox = width;
+      this.heightBox = height;
+      this.title = title;
+      this.text = new StringBuilder();
+      this.active = false;
+    }
+
+    public void draw(){
+      fill(206, 235, 251);
+      textSize(width*0.05f);
+      textAlign(LEFT);
+      strokeWeight(this.active ? 3 : 0);
+      text(title, this.x,  this.y - height*0.01f);
+      rect(this.x, this.y, this.widthBox, this.heightBox);
+      fill(0);
+      textSize(width*0.08f);
+      text(this.text.toString(), this.x, this.y+this.heightBox);
+    }
+
+    public void select(int x, int y){
+      if(x > this.x && x < this.x + this.widthBox && y > this.y && y < this.y + this.heightBox) {
+        this.active = true;
+      }else{
+        this.active = false;
+      }
+    }
+
+    public void keyPressed(char key){
+      if(this.active) {
+        if (key == BACKSPACE) {
+          if(this.text.length()>0)
+            this.text.deleteCharAt(this.text.length() - 1);
+        } else if (key >= 'a' && key <= 'z' || key >= 'A' && key <= 'Z' || key >= '0' && key <= '9') {
+          this.text.append(key);
+        }
+      }
+    }
+
+    public void reset(){
+      this.text = new StringBuilder();
+      this.active = false;
+    }
+
+    public String getText(){
+      return this.text.toString();
+    }
+  }
+
+  private textBox user, password;
   private PImage menuImage;
 
   private String menu;
@@ -27,6 +86,8 @@ public void setup(){
   this.menu = "startMenu";
   this.isInGame = false;
   this.error = "";
+  this.user = new textBox(0, height*0.3f, width, width*0.1f,"Username:");
+  this.password = new textBox(0, height*0.45f, width, width*0.1f,"Password:");
 }
 
 private void startMenu(){
@@ -58,15 +119,14 @@ private void registerMenu(){
   fill(206, 235, 251);
   textSize(width*0.1f);
   text("Register Menu",width/2.0f,height*0.05f);
-  textSize(width*0.05f);
-  textAlign(LEFT);
-  text("Username:", 0, height*0.29f);
-  rect(0, height*0.3f, width, width*0.1f);
-  text("Password:", 0, height*0.44f);
-  rect(0, height*0.45f, width, width*0.1f);
+  this.user.draw();
+  this.password.draw();
   textAlign(CENTER, CENTER);
+  fill(255,160,122);
   text(error, width*0.5f, height*0.80f);
   triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  fill(234, 221, 202);
+  ellipse(width*0.5f,height*0.65f,width*0.1f,height*0.1f);
 }
 
 private void loginMenu(){
@@ -96,6 +156,8 @@ public void draw(){
           this.menu = "registerMenu";
         }
       } else if(Objects.equals(this.menu, "registerMenu")){
+        this.user.select(mouseX, mouseY);
+        this.password.select(mouseX,mouseY);
         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
           triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
           triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
@@ -118,6 +180,12 @@ public void draw(){
         case ('d'):
           break;
 
+      }
+    } else{
+      if(this.user.active){
+        this.user.keyPressed(key);
+      } else if(this.password.active){
+        this.password.keyPressed(key);
       }
     }
   }
