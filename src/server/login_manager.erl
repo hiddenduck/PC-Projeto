@@ -14,7 +14,9 @@
 
 start() ->
 	register(?MODULE, spawn(fun() -> loop(#{}) end)), 
-	register(levels, spawn(fun() -> loop_levels(#{}) end)).
+	register(levels_manager, spawn(fun() -> loop_levels(#{}) end)).
+	%se o file_manager for um processo pode ser que não funcione se for ultrapassado
+	%register(file_manager, spawn(fun() -> file_manager() end)).
 
 
 invoke(Request) ->
@@ -26,16 +28,16 @@ create_account(Username, Passwd) ->
 	invoke({create_account, Username, Passwd}).
 	
 level_up(Username) ->
-	levels ! {level_up, Username, self()},
-	receive {Status, New_Level, levels} -> {Status, New_Level} end.
+	levels_manager ! {level_up, Username, self()},
+	receive {Status, New_Level, levels_manager} -> {Status, New_Level} end.
 
 level_down(Username) ->
-	levels ! {level_down, Username, self()},
-	receive {Status, New_Level, levels} -> {Status, New_Level} end.
+	levels_manager ! {level_down, Username, self()},
+	receive {Status, New_Level, levels_manager} -> {Status, New_Level} end.
 
 start_match(FstUsername, SecUsername) ->
-	levels ! {start_match, FstUsername, SecUsername, self()},
-	receive {Status, FstLevel, SecLevel, levels} -> {Status, FstLevel, SecLevel} end.
+	levels_manager ! {start_match, FstUsername, SecUsername, self()},
+	receive {Status, FstLevel, SecLevel, levels_manager} -> {Status, FstLevel, SecLevel} end.
 
 close_account(Username, Passwd) ->
 	invoke({close_account, Username, Passwd}).
@@ -54,7 +56,7 @@ handle(Request, Map) ->
 		{create_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				error -> 
-					levels ! {set_level, Username, self()},
+					levels_manager ! {set_level, Username, self()},
 					{ok, 1, Map#{Username => {Passwd,false}}};
 				_ ->
 					{user_exists, 0, Map}
@@ -105,48 +107,48 @@ loop_levels(Map) ->
 		{set_level, Username, From} ->
 			case maps:find(Username, Map) of
 				error ->
-					From ! {ok,1, levels}, 
+					From ! {ok,1, levels_manager}, 
 					loop_levels(maps:put(Username, 1, Map));
 				{ok, Level} ->
-					From ! {user_exists, Level, levels},
+					From ! {user_exists, Level, levels_manager},
 					loop_levels(Map)
 			end;
 		{level_up, Username, From} ->
 			case maps:find(Username, Map) of
 				{ok, Level} ->
-					From ! {ok, Level+1, levels}, 
+					From ! {ok, Level+1, levels_manager}, 
 					loop_levels(maps:put(Username, Level+1, Map));
 				error ->
-					From ! {invalid_user, 0, levels},
+					From ! {invalid_user, 0, levels_manager},
 					loop_levels(Map)
 			end;
 		{level_down, Username, From} ->
 			case maps:find(Username, Map) of
 				{ok, 1} ->
-					From ! {ok,1, levels}, 
+					From ! {ok,1, levels_manager}, 
 					loop_levels(Map);
 				{ok, Level} ->
-					From ! {ok, Level-1, levels},
+					From ! {ok, Level-1, levels_manager},
 					loop_levels(maps:put(Username, Level-1, Map));
 				error ->
-					From ! {invalid_user, 0, levels},
+					From ! {invalid_user, 0, levels_manager},
 					loop_levels(Map)
 			end;
 		{start_match, FstUsername, SecUsername, From} ->
 			case maps:find(FstUsername, Map) of 
 				error ->
-					From ! {invalid_fstuser, 0, 0, levels},
+					From ! {invalid_fstuser, 0, 0, levels_manager},
 					loop_levels(Map);
 				{ok, Level} ->
 					case maps:find(SecUsername, Map) of 
 						error ->
-							From ! {invalid_secuser, 0, 0, levels},
+							From ! {invalid_secuser, 0, 0, levels_manager},
 							loop_levels(Map);
 						{ok, Level} ->
-							From ! {ok, Level, Level, levels},
+							From ! {ok, Level, Level, levels_manager},
 							loop_levels(Map);
 						{ok, OtherLevel} ->
-							From ! {different_levels, Level, OtherLevel, levels},
+							From ! {different_levels, Level, OtherLevel, levels_manager},
 							loop_levels(Map)
 
 					end
@@ -156,8 +158,8 @@ loop_levels(Map) ->
 
 test() ->
 	start(),
-	create_account("hugo_rocha", "pw123"),
-	create_account("hugo_rocha_sec", "secondpw"),
+	A = create_account("hugo_rocha", "pw123"),
+	B = create_account("hugo_rocha_sec", "secondpw"),
 	login("hugo_rocha", "pw123"),
 	login("hugo_rocha_sec", "secondpw"),
 	R = level_up("hugo_rocha"),
@@ -171,9 +173,4 @@ test() ->
 	level_up("hugo_rocha_sec"),
 	level_up("hugo_rocha_sec"),
 	T = start_match("hugo_rocha", "hugo_rocha_sec"),
-	{R,U,I,O,S,K,D, T}.
-
-
-
-
-	
+	{A,B,R,U,I,O,S,K,D,T}.
