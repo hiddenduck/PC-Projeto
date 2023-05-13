@@ -9,7 +9,7 @@ start_game() ->
     P2 = {{0, 0}, math:pi()},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
-    spawn(fun() -> ticker({1,0}, {-1, 0}, Player1_sim, Player2_sim) end),
+    spawn(fun() -> ticker({{1,0}, {-1, 0}}, {Player1_sim, Player2_sim}) end),
     {Player1_sim, Player2_sim}.
 
 %sleep function yoinked from stor 
@@ -29,8 +29,9 @@ end.
 %curently receives PlayerState raw and no rubber bun in future should make shure only simulator
 %is allowed to send messages to it
 %Player 1 may be barred from puting inputs but 2 no
-ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
-    
+ticker(Pos, Player_sims, Powerups, A1, A2, AV1, AV2) ->
+    {Player1_sim, Player2_sim} = Player_sims,
+    {Pos1, Pos2} = Pos,
     sleep(10000),
 
     Player1_sim ! {return_state, self()},
@@ -45,7 +46,28 @@ ticker(Pos1, Pos2, Player1_sim, Player2_sim) ->
             {X2_, Y2_} = mv(Pos2, PlayerState2),
             io:format("State player2 ~p~n", [{{X2_, Y2_}, PlayerState2}])
     end,
-    ticker({X1_, Y1_}, {X2_, Y2_}, Player1_sim, Player2_sim).
+
+    case check_colision_power({X1_, Y1_}, Powerups) of
+        blue ->
+            AV1_ = AV; %TODO decide what to do to AV
+        green ->
+            A1_ = A1; %TODO ...
+        red ->
+            A1_ = A1, %TODO return to because
+            AV1_ = AV1 %TODO return to because
+    end,
+            
+    case check_colision_power({X2_, Y2_}, Powerups) of
+        blue ->
+            AV2_ = AV; %TODO decide what to do to AV
+        green ->
+            A2_ = A2; %TODO ...
+        red ->
+            A2_ = A2, %TODO return to because
+            AV2_ = AV2 %TODO return to because
+    end,
+    
+    ticker({{X1_, Y1_}, {X2_, Y2_}}, {Player1_sim, Player2_sim}).
 
     
 
@@ -84,10 +106,12 @@ mv(Pos, State) ->
     {{Vx, Vy}, _} = State,
     {X+Vx, Y+Vy}.
 
+check_colision_power(X1, Y1, [{X2, Y2} | Tail]) ->
+    Radius = 1,
+    if ((X1 - X2)*(X1 - X2) + (Y1 - Y2)*(Y1 - Y2)) > Radius*Radius
 
-test(P)->
-    P ! {change_direction, math:pi()},
-    P ! {speed_up, 1}.
+
+
 
 
 
