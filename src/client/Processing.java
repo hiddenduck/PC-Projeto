@@ -18,12 +18,15 @@ public class Processing extends PApplet{
   private PImage menuImage;
 
   private String menu;
+
+  private String error;
   private boolean isInGame;
 public void setup(){
   frameRate(30);
   this.menuImage = loadImage("images/space.jpg");
   this.menu = "startMenu";
   this.isInGame = false;
+  this.error = "";
 }
 
 private void startMenu(){
@@ -42,14 +45,28 @@ private void startMenu(){
   text("Register",width*0.5f,height*0.45f);
   fill(112,128,144);
   rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
+  fill(206, 235, 251);
+  textSize(width*0.05f);
+  text("Exit",width*0.5f,height*0.65f); // Botão não funcional ainda
+  fill(112,128,144);
+  rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
 }
 
 private void registerMenu(){
   background(this.menuImage);
+  textAlign(CENTER, CENTER);
+  fill(206, 235, 251);
+  textSize(width*0.1f);
+  text("Register Menu",width/2.0f,height*0.05f);
+  textSize(width*0.05f);
   textAlign(LEFT);
-  text("Username:", width/3.0f, 60);
-  rect(width/1000.0f, height/3.0f, 1000, 100);
-  rect(width/1000.0f, height/2.0f, 1000, 100);
+  text("Username:", 0, height*0.29f);
+  rect(0, height*0.3f, width, width*0.1f);
+  text("Password:", 0, height*0.44f);
+  rect(0, height*0.45f, width, width*0.1f);
+  textAlign(CENTER, CENTER);
+  text(error, width*0.5f, height*0.80f);
+  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
 }
 
 private void loginMenu(){
@@ -66,6 +83,10 @@ public void draw(){
     size(800, 800);
   }
 
+  private float triangleArea(float x1, float y1, float x2, float y2, float x3, float y3){
+    return Math.abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0f);
+  }
+
   public void mousePressed(){
     if(!isInGame){
       if(Objects.equals(this.menu, "startMenu")){
@@ -74,6 +95,12 @@ public void draw(){
         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           this.menu = "registerMenu";
         }
+      } else if(Objects.equals(this.menu, "registerMenu")){
+        if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
+          triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
+          triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
+          triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY))
+            this.menu = "startMenu";
       }
     }
   }
