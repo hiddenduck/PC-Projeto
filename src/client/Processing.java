@@ -4,61 +4,94 @@ import processing.data.*;
 import processing.event.*;
 import processing.opengl.*;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.ArrayList;
+import java.awt.*;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
-import java.util.Map;
 
 public class Processing extends PApplet{
-  private PImage startmenu;
+  private PImage menuImage;
+
+  private String menu;
+  private boolean isInGame;
 public void setup(){
-  /* size commented out by preprocessor */;
   frameRate(30);
-  textSize(65);
-  this.startmenu = loadImage("images/space.jpg");
+  this.menuImage = loadImage("images/space.jpg");
+  this.menu = "startMenu";
+  this.isInGame = false;
 }
 
 private void startMenu(){
-  background(this.startmenu);
-  textAlign(CENTER);
-  text("Welcome to SpaceWars",width/2.0f,60);
+  background(this.menuImage);
+  textAlign(CENTER, CENTER);
+  fill(206, 235, 251);
+  textSize(width*0.1f);
+  text("Welcome to SpaceWars",width/2.0f,height*0.05f);
+  strokeWeight(3);
+  textSize(width*0.05f);
+  text("Login",width*0.5f,height*0.25f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.3f, width*0.1f, height*0.1f);
+  fill(206, 235, 251);
+  textSize(width*0.05f);
+  text("Register",width*0.5f,height*0.45f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
 }
 
 private void registerMenu(){
-  background(this.startmenu);
+  background(this.menuImage);
   textAlign(LEFT);
   text("Username:", width/3.0f, 60);
   rect(width/1000.0f, height/3.0f, 1000, 100);
   rect(width/1000.0f, height/2.0f, 1000, 100);
 }
 
+private void loginMenu(){
+  background(this.menuImage);
+}
+
 public void draw(){
-  startMenu();
-  //registerMenu();
+  try {
+    this.getClass().getDeclaredMethod(this.menu).invoke(this);
+  } catch (Exception e){e.printStackTrace();}
 }
 
   public void settings() {
     size(800, 800);
   }
 
+  public void mousePressed(){
+    if(!isInGame){
+      if(Objects.equals(this.menu, "startMenu")){
+        if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
+          this.menu = "loginMenu";
+        } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+          this.menu = "registerMenu";
+        }
+      }
+    }
+  }
+
   public void keyPressed(){
-    switch (this.key){
-      case('a'):
-        //new Communicator();
-        break;
+    if(isInGame) {
+      switch (this.key) {
+        case ('a'):
+          //new Communicator();
+          break;
 
-      case('w'):
-        break;
+        case ('w'):
+          break;
 
-      case('d'):
-        break;
+        case ('d'):
+          break;
 
+      }
     }
   }
 

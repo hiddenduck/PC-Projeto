@@ -41,7 +41,7 @@ public class ConnectionManager implements AutoCloseable{
         this.output = output;
         this.socket = socket;
         fillTypeMap();
-        this.mapLock = new ReentrantLock(); // Vou ter que trocar isto para um monitor
+        this.mapLock = new ReentrantLock();
         this.reader = new Thread(() -> {
             String message;
             try {
@@ -60,12 +60,12 @@ public class ConnectionManager implements AutoCloseable{
                 e.printStackTrace();
             }
         });
+        this.reader.start();
     }
 
     public static ConnectionManager start(Socket socket) throws IOException{
         BufferedReader input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         PrintWriter output = new PrintWriter(socket.getOutputStream());
-
         return new ConnectionManager(input, output, socket);
     }
 
