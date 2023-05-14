@@ -17,8 +17,8 @@ import java.io.IOException;
 public class Processing extends PApplet{
 
   private class textBox{
-    private float x, y, widthBox, heightBox;
-    private String title;
+    private final float x, y, widthBox, heightBox;
+    private final String title;
 
     private boolean active;
     private StringBuilder text;
@@ -78,7 +78,9 @@ public class Processing extends PApplet{
   private String message;
   private boolean isInGame;
 
-  private boolean registerMenu;
+  private int level;
+
+  private boolean registerMenu, isReady;
 public void setup(){
   frameRate(30);
   this.menuImage = loadImage("images/space.jpg");
@@ -87,6 +89,7 @@ public void setup(){
   this.message = "";
   this.user = new textBox(0, height*0.3f, width, width*0.1f,"Username:");
   this.password = new textBox(0, height*0.45f, width, width*0.1f,"Password:");
+  this.isReady = false;
 }
 
 private void startMenu(){
@@ -128,6 +131,30 @@ private void logRegMenu(){
   fill(112,128,144);
   rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
 }
+
+private void waitingMenu(){
+  background(this.menuImage);
+  strokeWeight(10);
+  fill(75,37,109);
+  rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
+  textSize(width*0.05f);
+  fill(188, 255, 18);
+  text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
+  text("Level: " + this.level,width*0.45f,height*0.2f);
+  textSize(width*0.08f);
+  if(isReady){
+    strokeWeight(8);
+    fill(50,205,50);
+    text("Ready", width*0.5f,  height*0.42f);
+    fill(0);
+    line(width*0.45f, height*0.5f, width*0.45f+width*0.1f, height*0.5f+height*0.1f);
+    line(width*0.45f+height*0.1f, height*0.5f, width*0.45f, height*0.5f+height*0.1f);
+  } else {
+    fill(220,20,60);
+    text("Not Ready", width*0.5f,  height*0.42f);
+  }
+}
+
 public void draw(){
   try {
     this.getClass().getDeclaredMethod(this.menu).invoke(this);
@@ -165,6 +192,12 @@ public void draw(){
         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
           String username = this.user.getText();
           String password = this.password.getText();
+          this.menuImage = loadImage("images/space2.jpg");
+          this.menu = "waitingMenu";
+        }
+      } else if(Objects.equals(this.menu, "waitingMenu")){
+        if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+          this.isReady = !this.isReady;
         }
       }
     }
