@@ -13,11 +13,19 @@
 
 
 start() ->
-	register(?MODULE, spawn(fun() -> loop(#{}) end)), 
-	register(levels_manager, spawn(fun() -> loop_levels(#{}) end)).
+	case file:read_file("passwords") of
+		{ok, <<>>} -> Passwords = #{};
+		{ok, PassBin} -> Passwords = erlang:binary_to_term(PassBin)
+	end,
+	case file:read_file("levels") of
+		{ok, <<>>} -> Levels = #{};
+		{ok, LevelsBin} -> Levels = erlang:binary_to_term(LevelsBin)
+	end,
+	register(?MODULE, spawn(fun() -> loop(Passwords) end)), 
+	register(levels_manager, spawn(fun() -> loop_levels(Levels) end)),
+	{Passwords, Levels}.
 	%se o file_manager for um processo pode ser que não funcione se for ultrapassado
 	%register(file_manager, spawn(fun() -> file_manager() end)).
-
 
 invoke(Request) ->
 	?MODULE ! {Request, self()},
@@ -57,34 +65,36 @@ handle(Request, Map) ->
 			case maps:find(Username, Map) of
 				error -> 
 					levels_manager ! {set_level, Username, self()},
-					{ok, 1, Map#{Username => {Passwd,false}}};
+					{ok, 1, Map#{Username => Passwd}};
 				_ ->
 					{user_exists, 0, Map}
 			end;
 		{close_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
-				{ok, {Passwd, _}} -> 
+				{ok, Passwd} -> 
 					{ok, maps:remove(Username, Map)};
 				_ ->
 					{invalid, Map}
 			end;
 		{login, Username, Passwd} ->
 			case maps:find(Username, Map) of
-				{ok, {Passwd, _}} -> 
-					{ok, maps:update(Username, {Passwd, true}, Map)}; 
+				{ok, Passwd} -> 
+					{ok, Map};
 				_ ->
 					{invalid, Map}
-			end;
-		{logout, Username} -> 
-			case maps:find(Username, Map) of
-				{ok, {Passwd, true}} -> 
-					{ok, maps:update(Username, {Passwd, false}, Map)};
-				_ ->
-					{invalid, Map}
-			end;
-		online ->
-			Res = [User || {User, {_, true}} <- maps:to_list(Map)], 
-			{Res, Map}
+			end
+		%{logout, Username} -> 
+		%	case maps:find(Username, Map) of
+		%		{ok, {Passwd, true}} -> 
+		%			{ok, maps:update(Username, {Passwd, false}, Map)};
+		%		_ ->
+		%			{invalid, Map}
+		%	end
+		%Não faz sentido ser aqui que se regista quem está ou não online, isso é problema do servidor, isto vai ser só gestão de contas
+		%Só devia ser permitido chegar a estas funções se já estiver online.
+		%online ->
+		%	Res = [User || {User, {_, true}} <- maps:to_list(Map)], 
+		%	{Res, Map}
 	end.
 
 
@@ -98,8 +108,9 @@ loop(Map) ->
 		{Request, From} ->
 			{Res, NextState} = handle(Request, Map),
 			From ! {Res, ?MODULE},
-			loop(NextState)
-		
+			loop(NextState);
+		stop ->
+			file:write_file("passwords", erlang:term_to_binary(Map))
 	end.
 
 loop_levels(Map) ->
@@ -108,28 +119,28 @@ loop_levels(Map) ->
 			case maps:find(Username, Map) of
 				error ->
 					From ! {ok,1, levels_manager}, 
-					loop_levels(maps:put(Username, 1, Map));
-				{ok, Level} ->
+					loop_levels(maps:put(Username, {1, 0}, Map));
+				{ok, {Level,_}} ->
 					From ! {user_exists, Level, levels_manager},
 					loop_levels(Map)
 			end;
 		{level_up, Username, From} ->
 			case maps:find(Username, Map) of
-				{ok, Level} ->
+				{ok, {Level,_}} ->
 					From ! {ok, Level+1, levels_manager}, 
-					loop_levels(maps:put(Username, Level+1, Map));
+					loop_levels(maps:put(Username, {Level+1, 0}, Map));
 				error ->
 					From ! {invalid_user, 0, levels_manager},
 					loop_levels(Map)
 			end;
 		{level_down, Username, From} ->
 			case maps:find(Username, Map) of
-				{ok, 1} ->
+				{ok, {1,_}} ->
 					From ! {ok,1, levels_manager}, 
 					loop_levels(Map);
-				{ok, Level} ->
+				{ok, {Level,_}} ->
 					From ! {ok, Level-1, levels_manager},
-					loop_levels(maps:put(Username, Level-1, Map));
+					loop_levels(maps:put(Username, {Level-1, 0}, Map));
 				error ->
 					From ! {invalid_user, 0, levels_manager},
 					loop_levels(Map)
@@ -139,38 +150,64 @@ loop_levels(Map) ->
 				error ->
 					From ! {invalid_fstuser, 0, 0, levels_manager},
 					loop_levels(Map);
-				{ok, Level} ->
+				{ok, {Level, _}} ->
 					case maps:find(SecUsername, Map) of 
 						error ->
 							From ! {invalid_secuser, 0, 0, levels_manager},
 							loop_levels(Map);
-						{ok, Level} ->
+						{ok, {Level, _}} ->
 							From ! {ok, Level, Level, levels_manager},
 							loop_levels(Map);
-						{ok, OtherLevel} ->
+						{ok, {OtherLevel, _}} ->
 							From ! {different_levels, Level, OtherLevel, levels_manager},
 							loop_levels(Map)
 
 					end
-			end
+			end;
+		{end_match, Winner, Loser, From} ->
+			case maps:find(Winner, Map) of 
+				error ->
+					From ! {invalid_winner, 0, 0, levels_manager},
+					loop_levels(Map);
+				{ok, {Level, Wins}} ->
+					case maps:find(Loser, Map) of 
+						error ->
+							From ! {invalid_loser, 0, 0, levels_manager},
+							loop_levels(Map);
+						{ok, {OtherLevel, _}} ->
+							if Wins+1 == Level*2 -> NewLevel = Level+1, NewWins = 0 ;
+							   true -> NewLevel = Level, NewWins = Wins+1
+							end,
+							From ! {ok, NewLevel, OtherLevel, levels_manager},
+							loop_levels(Map#{Winner => {NewLevel, NewWins}})
+					end
+			end;
+		stop ->
+			file:write_file("levels", erlang:term_to_binary(Map))
 	end.
 
+
+stop() ->
+	?MODULE ! stop,
+	levels_manager ! stop,
+	ok.
 
 test() ->
 	start(),
 	A = create_account("hugo_rocha", "pw123"),
 	B = create_account("hugo_rocha_sec", "secondpw"),
-	login("hugo_rocha", "pw123"),
-	login("hugo_rocha_sec", "secondpw"),
-	R = level_up("hugo_rocha"),
-	U = level_up("hugo_rocha"),
-	I = level_up("hugo_rocha"),
-	O = level_up("hugo_rocha"),
-	S = create_account("hugo_rocha", "xd"),
-	K = level_up("hugo_rochada"),
-	D = level_down("hugo_rocha"),
+	K = login("hugo_rocha", "pw123"),
+	L = login("hugo_rocha_sec", "secondpw"),
+	C = level_up("hugo_rocha"),
+	D = level_up("hugo_rocha"),
+	E = level_up("hugo_rocha"),
+	F = level_up("hugo_rocha"),
+	G = create_account("hugo_rocha", "xd"),
+	H = level_up("hugo_rochada"),
+	I = level_down("hugo_rocha"),
 	level_up("hugo_rocha_sec"),
 	level_up("hugo_rocha_sec"),
 	level_up("hugo_rocha_sec"),
-	T = start_match("hugo_rocha", "hugo_rocha_sec"),
-	{A,B,R,U,I,O,S,K,D,T}.
+	J = start_match("hugo_rocha", "hugo_rocha_sec"),
+	Z = stop(),
+	{A,B,K,L,C,D,E,F,G,H,I,J,Z}.
