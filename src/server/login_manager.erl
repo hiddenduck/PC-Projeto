@@ -31,7 +31,6 @@ invoke(Request) ->
 	?MODULE ! {Request, self()},
 	receive {Res, ?MODULE} -> Res end.
 
-
 create_account(Username, Passwd) ->
 	invoke({create_account, Username, Passwd}).
 	
@@ -80,6 +79,8 @@ handle(Request, Map) ->
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
 					{ok, Map};
+				{ok, _ } ->
+					{invalid_password, Map};
 				_ ->
 					{invalid, Map}
 			end
