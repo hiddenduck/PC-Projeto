@@ -42,14 +42,11 @@ public class Processing extends PApplet{
       fill(0);
       textSize(width*0.08f);
       text(this.text.toString(), this.x, this.y+this.heightBox);
+      strokeWeight(0);
     }
 
     public void select(int x, int y){
-      if(x > this.x && x < this.x + this.widthBox && y > this.y && y < this.y + this.heightBox) {
-        this.active = true;
-      }else{
-        this.active = false;
-      }
+      this.active = x > this.x && x < this.x + this.widthBox && y > this.y && y < this.y + this.heightBox;
     }
 
     public void keyPressed(char key){
