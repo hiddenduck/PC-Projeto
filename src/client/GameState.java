@@ -6,7 +6,7 @@ public class GameState {
 
     private int point, enemyPoint;
 
-    private boolean goldenPoint;
+    private char gameStatus;
 
     public void putPos(float x, float y, float alfa, boolean enemy){
         if(enemy){
@@ -25,8 +25,8 @@ public class GameState {
         this.enemyPoint = enemyPoint;
     }
 
-    public void putGoldenPoint(boolean goldenPoint){
-        this.goldenPoint = goldenPoint;
+    public void setGameStatus(char c){
+        this.gameStatus = c;
     }
 
 }

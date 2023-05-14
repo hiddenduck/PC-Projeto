@@ -6,6 +6,7 @@ import processing.opengl.*;
 
 import java.awt.*;
 import java.lang.reflect.Method;
+import java.net.Socket;
 import java.util.*;
 import java.io.File;
 import java.io.BufferedReader;
@@ -15,6 +16,11 @@ import java.io.OutputStream;
 import java.io.IOException;
 
 public class Processing extends PApplet{
+  private ConnectionManager connectionManager;
+  public Processing(ConnectionManager connectionManager){
+    super();
+    this.connectionManager = connectionManager;
+  }
 
   private class textBox{
     private final float x, y, widthBox, heightBox;
@@ -80,7 +86,15 @@ public class Processing extends PApplet{
 
   private int level;
 
+  private GameState gameState;
+
   private boolean registerMenu, isReady;
+
+  private Communicator[] communicators;
+
+  private Thread accountMessenger;
+
+  private String accountMessage;
 public void setup(){
   frameRate(30);
   this.menuImage = loadImage("images/space.jpg");
@@ -90,6 +104,18 @@ public void setup(){
   this.user = new textBox(0, height*0.3f, width, width*0.1f,"Username:");
   this.password = new textBox(0, height*0.45f, width, width*0.1f,"Password:");
   this.isReady = false;
+  this.gameState = new GameState();
+  this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
+  /*
+  this.accountMessenger = new Thread(() -> {
+    try {
+      this.accountMessage = this.connectionManager.receive("account");
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+  });
+  this.accountMessenger.start();
+  */
 }
 
 private void startMenu(){
@@ -157,6 +183,9 @@ private void waitingMenu(){
 
 private void game(){
   background(this.menuImage);
+  fill(0,0,112);
+  rect(width*0.1f,height*0.1f, width*0.8f, height*0.8f);
+
 }
 
 public void draw(){
@@ -204,6 +233,7 @@ public void draw(){
           this.isReady = !this.isReady;
           this.menuImage = loadImage("images/space3.jpg");
           this.menu = "game";
+
         }
       }
     }
@@ -244,7 +274,7 @@ public void draw(){
       //ConnectionManager cm = ConnectionManager.start(socket);
 
       String[] processingArgs = {"Processing"};
-      PApplet.runSketch(processingArgs, new Processing());
+      PApplet.runSketch(processingArgs, new Processing(null));
     } catch(Exception e){
       e.printStackTrace();
       System.exit(0);

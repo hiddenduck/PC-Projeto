@@ -1,14 +1,21 @@
 import java.util.Objects;
 
-class CommunicatorPos extends Thread{
-    private ConnectionManager connectionManager;
+public class Communicator extends Thread{
+    public ConnectionManager connectionManager;
+    public GameState gameState;
 
-    private GameState gameState;
+    public Communicator(ConnectionManager connectionManager, GameState gameState){
+        this.connectionManager = connectionManager;
+        this.gameState = gameState;
+    }
+}
 
+class CommunicatorPos extends Communicator{
     private boolean enemy;
 
-    public CommunicatorPos(ConnectionManager connectionManager){
-        this.connectionManager = connectionManager;
+    public CommunicatorPos(ConnectionManager connectionManager, GameState gameState, boolean enemy){
+        super(connectionManager, gameState);
+        this.enemy = enemy;
     }
 
     public void run(){
@@ -23,11 +30,9 @@ class CommunicatorPos extends Thread{
     }
 }
 
-class CommunicatorBox extends Thread{
-    private ConnectionManager connectionManager;
-
-    public CommunicatorBox(ConnectionManager connectionManager){
-        this.connectionManager = connectionManager;
+class CommunicatorBox extends Communicator{
+    public CommunicatorBox(ConnectionManager connectionManager, GameState gameState){
+        super(connectionManager, gameState);
     }
 
     public void run(){
@@ -35,14 +40,13 @@ class CommunicatorBox extends Thread{
     }
 }
 
-class CommunicatorPoint extends Thread{
+class CommunicatorPoint extends Communicator{
     private ConnectionManager connectionManager;
 
     private GameState gameState;
 
     public CommunicatorPoint(ConnectionManager connectionManager, GameState gameState){
-        this.connectionManager = connectionManager;
-        this.gameState = gameState;
+        super(connectionManager, gameState);
     }
 
     public void run(){
@@ -56,21 +60,24 @@ class CommunicatorPoint extends Thread{
     }
 }
 
-class CommunicatorGame{
+class CommunicatorGame extends Communicator{
     private ConnectionManager connectionManager;
 
     private GameState gameState;
 
     public CommunicatorGame(ConnectionManager connectionManager, GameState gameState){
-        this.connectionManager = connectionManager;
-        this.gameState = gameState;
+        super(connectionManager, gameState);
     }
 
     public void run(){
         try {
             String point = this.connectionManager.receive("game");
-            if(Objects.equals(point, "lp")){
-                //this.gameState.putGoldenPoint();
+            if(Objects.equals(point, "lost")){
+                this.gameState.setGameStatus('L');
+            } else if(Objects.equals(point, "won")){
+                this.gameState.setGameStatus('W');
+            } else {
+                this.gameState.setGameStatus('G');
             }
         } catch (Exception e){
             e.printStackTrace();
