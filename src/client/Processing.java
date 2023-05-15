@@ -95,6 +95,8 @@ public class Processing extends PApplet{
   private Thread accountMessenger;
 
   private String accountMessage;
+
+  private StringBuffer keysPressed;
 public void setup(){
   frameRate(30);
   this.menuImage = loadImage("images/space.jpg");
@@ -106,6 +108,7 @@ public void setup(){
   this.isReady = false;
   this.gameState = new GameState();
   this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
+  this.keysPressed = new StringBuffer(3);
   /*
   this.accountMessenger = new Thread(() -> {
     try {
@@ -181,17 +184,20 @@ private void waitingMenu(){
   }
 }
 
-private void game(){
+private void game() throws IOException{
   background(this.menuImage);
   fill(0,0,112);
   rect(width*0.1f,height*0.1f, width*0.8f, height*0.8f);
-
+  this.connectionManager.send("move", this.keysPressed.toString());
 }
 
 public void draw(){
   try {
     this.getClass().getDeclaredMethod(this.menu).invoke(this);
-  } catch (Exception e){e.printStackTrace();}
+  } catch (Exception e){
+    e.printStackTrace();
+    exit();
+  }
 }
 
   public void settings() {
@@ -242,16 +248,9 @@ public void draw(){
   public void keyPressed(){
     if(isInGame) {
       switch (this.key) {
-        case ('a'):
-          //new Communicator();
-          break;
-
-        case ('w'):
-          break;
-
-        case ('d'):
-          break;
-
+        case ('a') -> this.keysPressed.setCharAt(0,'T');
+        case ('w') -> this.keysPressed.setCharAt(1,'T');
+        case ('d') -> this.keysPressed.setCharAt(2,'T');
       }
     } else{
       if(this.user.active){
@@ -259,6 +258,14 @@ public void draw(){
       } else if(this.password.active){
         this.password.keyPressed(key);
       }
+    }
+  }
+
+  public void keyReleased(){
+    switch (this.key) {
+      case ('a') -> this.keysPressed.setCharAt(0,'F');
+      case ('w') -> this.keysPressed.setCharAt(1,'F');
+      case ('d') -> this.keysPressed.setCharAt(2,'F');
     }
   }
 
