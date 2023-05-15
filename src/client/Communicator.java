@@ -53,6 +53,7 @@ class CommunicatorPoint extends Communicator{
         try {
             String point = this.connectionManager.receive("point");
             String[] points = point.split(":", 2);
+            this.gameState.lrw.readLock().lock();
             this.gameState.putPoint(Integer.parseInt(points[0]), Integer.parseInt(points[1]));
         } catch (Exception e){
             e.printStackTrace();

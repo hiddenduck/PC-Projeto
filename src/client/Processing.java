@@ -187,8 +187,9 @@ private void waitingMenu(){
 private void game() throws IOException{
   background(this.menuImage);
   fill(0,0,112);
-  rect(width*0.1f,height*0.1f, width*0.8f, height*0.8f);
-  this.connectionManager.send("move", this.keysPressed.toString());
+  rect(width*0.1f,height*0.1f, 600, 600);
+  GameState gameDraw = this.gameState.copy();
+  //this.connectionManager.send("move", this.keysPressed.toString());
 }
 
 public void draw(){
