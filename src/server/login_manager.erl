@@ -9,6 +9,7 @@
 		handle/2,
 		level_up/1,
 		level_down/1,
+		check_level/1,
 		start_match/2]).
 
 
@@ -42,6 +43,10 @@ level_down(Username) ->
 	levels_manager ! {level_down, Username, self()},
 	receive {Status, New_Level, levels_manager} -> {Status, New_Level} end.
 
+check_level(Username) ->
+	levels_manager ! {start_match, Username, self()},
+	receive {Status, Level, levels_manager} -> {Status, Level} end.
+
 start_match(FstUsername, SecUsername) ->
 	levels_manager ! {start_match, FstUsername, SecUsername, self()},
 	receive {Status, FstLevel, SecLevel, levels_manager} -> {Status, FstLevel, SecLevel} end.
@@ -72,6 +77,8 @@ handle(Request, Map) ->
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
 					{ok, maps:remove(Username, Map)};
+				{ok, _} ->
+					{wrong_password, Map};
 				_ ->
 					{invalid, Map}
 			end;
@@ -144,6 +151,15 @@ loop_levels(Map) ->
 					loop_levels(maps:put(Username, {Level-1, 0}, Map));
 				error ->
 					From ! {invalid_user, 0, levels_manager},
+					loop_levels(Map)
+			end;
+		{check_level, Username, From} ->
+			case maps:find(Username, Map) of 
+				error ->
+					From ! {invalid_user, 0, levels_manager},
+					loop_levels(Map);
+				{ok, {Level, _}} ->
+					From ! {ok, Level, levels_manager},
 					loop_levels(Map)
 			end;
 		{start_match, FstUsername, SecUsername, From} ->
