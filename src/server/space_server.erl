@@ -32,10 +32,8 @@ game_manager(Room_map, Game_Rooms) ->
     receive
         {unready, Level, User} -> 
             case maps:find(Level, Room_map) of
-                {ok, {Room_pid, User}} ->
-                    New_Map = maps:remove(Level, Room_map),
-                    Room_pid ! {cancel, game_manager},
-                    User ! {ok, game_manager};
+                {ok, {_, User}} ->
+                    New_Map = maps:remove(Level, Room_map);
                 _ ->
                     %Se alguém estiver ready e não for este não se faz nada?
                     New_Map = Room_map,
@@ -48,6 +46,7 @@ game_manager(Room_map, Game_Rooms) ->
                     User ! {error_already_ready, game_manager},
                     game_manager(Room_map, Game_Rooms);
                 {ok, {_, Game}} ->
+                    %TODO simplificar o game_manager para não perder tempo em burocracias
                     %juntar-se ao jogo
                     User ! {ok, Game, game_manager},
                     Game ! {start, User, game_manager},
@@ -68,14 +67,23 @@ sync_up(FstPlayer, SndPlayer) ->
     FstPlayer ! {start_game, self()},
     SndPlayer ! {start_game, self()},
     receive
+        %sei lá
         {ok, FstPlayer} -> 
             receive
                 {ok, SndPlayer} -> game([FstPlayer, SndPlayer])
                 after 6000 -> 
                     game_manager ! {end_game, self()},
                     FstPlayer ! {end_game, self()}
-            end
+            end;
+        {ok, SndPlayer} -> 
+            receive
+                {ok, SndPlayer} -> game([FstPlayer, SndPlayer])
+                after 6000 -> 
+                    game_manager ! {end_game, self()},
+                    SndPlayer ! {end_game, self()}
+            end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
+        {abort, FstPlayer} -> ok
         after 6000 -> 
             game_manager ! {end_game, self()},
             SndPlayer ! {end_game, self()}
@@ -196,10 +204,7 @@ user_ready(Sock, Game, Username) ->
                     end;
                 "game:unready" -> 
                     unready(Username, Game),
-                    receive 
-                        {ok, game_manager} -> gen_tcp:send(Sock, "game:unready"), user(Sock,  Username)
-                        %{error_not_ready, game_manager} -> gen_tcp:send(Sock, "game:error_not_ready"), user_ready(Sock, Room, Username)
-                    end;
+                    gen_tcp:send(Sock, "game:unready"), user(Sock,  Username);
                 _ -> 
                     lobby ! {line, Data},
                     user_ready(Sock, Game, Username)
