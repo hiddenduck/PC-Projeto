@@ -92,11 +92,11 @@ public class Processing extends PApplet{
 
   private Communicator[] communicators;
 
-  private Thread accountMessenger;
+  //private Thread accountMessenger;
 
-  private String accountMessage;
+  //private String accountMessage;
 
-  private StringBuffer keysPressed;
+  private boolean[] keysPressed;
 public void setup(){
   frameRate(30);
   this.menuImage = loadImage("images/space.jpg");
@@ -108,7 +108,18 @@ public void setup(){
   this.isReady = false;
   this.gameState = new GameState();
   this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
-  this.keysPressed = new StringBuffer(3);
+  this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, false);
+  this.communicators[0].start();
+  this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, true);
+  this.communicators[1].start();
+  this.communicators[2] = new CommunicatorBox(this.connectionManager, this.gameState);
+  this.communicators[2].start();
+  this.communicators[3] = new CommunicatorPoint(this.connectionManager, this.gameState);
+  this.communicators[3].start();
+  this.communicators[4] = new CommunicatorGame(this.connectionManager, this.gameState);
+  this.communicators[4].start();
+
+  this.keysPressed = new boolean[3];
   /*
   this.accountMessenger = new Thread(() -> {
     try {
@@ -193,7 +204,8 @@ private void game() throws IOException{
   fill(0,0,112);
   rect(width*0.1f,height*0.1f, 600, 600);
   GameState gameDraw = this.gameState.copy();
-  //this.connectionManager.send("move", this.keysPressed.toString());
+  if(this.keysPressed[0]|| this.keysPressed[1] ||this.keysPressed[2]) // if something fishy, the bug is probably here
+    this.connectionManager.send("move", Arrays.toString(this.keysPressed));
 }
 
 public void draw(){
@@ -278,9 +290,9 @@ public void draw(){
   public void keyPressed(){
     if(isInGame) {
       switch (this.key) {
-        case ('a') -> this.keysPressed.setCharAt(0,'T');
-        case ('w') -> this.keysPressed.setCharAt(1,'T');
-        case ('d') -> this.keysPressed.setCharAt(2,'T');
+        case ('a') -> this.keysPressed[0] = true;
+        case ('w') -> this.keysPressed[1] = true;
+        case ('d') -> this.keysPressed[2] = true;
       }
     } else{
       if(this.user.active){
@@ -293,9 +305,9 @@ public void draw(){
 
   public void keyReleased(){
     switch (this.key) {
-      case ('a') -> this.keysPressed.setCharAt(0,'F');
-      case ('w') -> this.keysPressed.setCharAt(1,'F');
-      case ('d') -> this.keysPressed.setCharAt(2,'F');
+      case ('a') -> this.keysPressed[0] = false;
+      case ('w') -> this.keysPressed[1] = false;
+      case ('d') -> this.keysPressed[2] = false;
     }
   }
 

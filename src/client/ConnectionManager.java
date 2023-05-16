@@ -27,10 +27,10 @@ public class ConnectionManager implements AutoCloseable{
     private void fillTypeMap(){ // Encher os tipos logo no inicio, já os conhecemos todos
         this.typeMap = new HashMap<>();
         this.typeMap.put("pos", new TypeQueue());
+        this.typeMap.put("posEnemy", new TypeQueue());
         this.typeMap.put("box", new TypeQueue());
         this.typeMap.put("point", new TypeQueue());
         this.typeMap.put("game", new TypeQueue());
-        this.typeMap.put("account", new TypeQueue());
     }
 
     private ConnectionManager(BufferedReader input, PrintWriter output, Socket socket){
