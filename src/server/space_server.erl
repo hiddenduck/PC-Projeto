@@ -83,7 +83,8 @@ sync_up(FstPlayer, SndPlayer) ->
 
 game([FstPlayer]) ->
     receive 
-        {abort, FstPlayer} -> ok;
+        {abort, FstPlayer} -> 
+            game_manager ! {end_game, self()};
         %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
         %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
         {start, SndPlayer, game_manager} ->
