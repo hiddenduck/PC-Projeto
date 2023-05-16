@@ -55,8 +55,8 @@ game_manager(Room_map, Game_Rooms) ->
                     game_manager(New_Map, [Game | Game_Rooms]);
                 _ ->
                     %criar uma espera
-                    User ! {ok, game_manager},
                     Game = spawn(fun()-> game([User]) end),
+                    User ! {ok, Game, game_manager},
                     game_manager(Room_map#{Level => Game}, Game_Rooms)
             end;
         {end_game, Game} ->
