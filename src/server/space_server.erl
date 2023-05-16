@@ -9,17 +9,17 @@ stop() -> ?MODULE ! stop.
 
 server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
-    Lobby = spawn(fun()-> lobby([]) end),
-    register(game_manager, spawn(fun() -> game_manager(#{0=>Lobby}, []) end)),
-    spawn(fun() -> acceptor(LSock, Lobby) end),
+    register(lobby, spawn(fun()-> lobby([]) end)),
+    register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
+    spawn(fun() -> acceptor(LSock) end),
     receive stop -> ok end.
 
-acceptor(LSock, Room) ->
+acceptor(LSock) ->
     {ok, Sock} = gen_tcp:accept(LSock),
-    spawn(fun() -> acceptor(LSock, Room) end),
-    main_menu(Sock, Room).
+    spawn(fun() -> acceptor(LSock) end),
+    main_menu(Sock).
 
-main_menu(Sock, Room) ->
+main_menu(Sock) ->
     receive
         {tcp, _, "create:" ++ Data} ->
             [Username, Password] = re:split(Data, "[:]"),
@@ -27,20 +27,20 @@ main_menu(Sock, Room) ->
                 ok -> gen_tcp:send(Sock, "create:ok");
                 user_exists -> gen_tcp:send(Sock, "create:error_user_exists")
             end,
-            main_menu(Sock, Room);
+            main_menu(Sock);
         {tcp, _, "login:" ++ Data} -> 
             [Username, Password] = re:split(Data, "[:]"),
             case login_manager:login(Username, Password) of
                 ok ->
-                    Room ! {enter, "lobby", self()},
+                    lobby ! {enter, "lobby", self()},
                     gen_tcp:send(Sock, "login:ok"),
-                    user(Sock, Room, Username);
+                    user(Sock, Username);
                 invalid_password ->
                     gen_tcp:send(Sock, "login:error_invalid_password"),
-                    main_menu(Sock, Room);
+                    main_menu(Sock);
                 _ ->
                     gen_tcp:send(Sock, "login:error_unknown_username"),
-                    main_menu(Sock, Room)
+                    main_menu(Sock)
             end;
         {tcp_error, _, _} -> ok;
         {tcp_closed, _, _} -> ok;
@@ -63,28 +63,57 @@ game_manager(Room_map, Game_Rooms) ->
             game_manager(New_Map, Game_Rooms);
         {ready, Level, User} ->
             case maps:find(Level, Room_map) of
-                {ok, User} ->
+                {ok, {User, _}} ->
                     User ! {error_already_ready, game_manager},
                     game_manager(Room_map, Game_Rooms);
-                {ok, Fst} ->
+                {ok, {_, Game}} ->
                     %juntar-se ao jogo
+                    User ! {ok, Game, game_manager},
+                    Game ! {start, User, game_manager},
                     New_Map = maps:remove(Level, Room_map),
-                    User ! {ok, game_manager},
-                    User ! {start_game, game_manager},
-                    Fst ! {start_game, game_manager},
-                    Room_pid = spawn(fun()-> game(Fst, User) end),
-                    game_manager(New_Map, [Room_pid | Game_Rooms]);
+                    game_manager(New_Map, [Game | Game_Rooms]);
                 _ ->
                     %criar uma espera
                     User ! {ok, game_manager},
-                    game_manager(Room_map#{Level => User}, Game_Rooms)
+                    Game = spawn(fun()-> game([User]) end),
+                    game_manager(Room_map#{Level => Game}, Game_Rooms)
             end;
         {end_game, Game} ->
             game_manager(Room_map, Game_Rooms -- [Game])
     end.
 
-game(FstPlayer, SndPlayer) ->
-    ok.
+game([FstPlayer]) ->
+    receive 
+        {abort, FstPlayer} -> ok;
+        %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
+        %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
+        {start, SndPlayer, game_manager} ->
+            sync_up(FstPlayer, SndPlayer)
+    end;
+
+game([FstPlayer, SndPlayer]) -> 
+    receive
+        {abort, User} -> 
+            %pontuar o outro jogador
+            ok
+    end.
+
+sync_up(FstPlayer, SndPlayer) ->
+    FstPlayer ! {start_game, self()},
+    SndPlayer ! {start_game, self()},
+    receive
+        {ok, FstPlayer} -> 
+            receive
+                {ok, SndPlayer} -> game([FstPlayer, SndPlayer])
+                after 6000 -> 
+                    game_manager ! {end_game, self()},
+                    SndPlayer ! {end_game, self()}
+            end
+        %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
+        after 6000 -> 
+            game_manager ! {end_game, self()},
+            SndPlayer ! {end_game, self()}
+    end.
 
 lobby(Users) ->
     receive
@@ -100,88 +129,90 @@ lobby(Users) ->
             lobby(Users -- [User])
     end.  
 
-user(Sock, Room, Username) ->
+user(Sock, Username) ->
     receive
         {line, Data} ->
             gen_tcp:send(Sock, "text:" ++ Data),
-            user(Sock, Room, Username);
+            user(Sock, Username);
         {tcp, _, Data} ->
             case Data of
                 "logout" -> 
-                    Room ! {leave, self()},
+                    lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
                 "close:" ++ Data -> 
                     case login_manager:close_account(Username, Data) of
                         ok ->
-                            Room ! {leave, self()},
+                            lobby ! {leave, self()},
                             gen_tcp:send(Sock, "close:ok");
 
-                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user(Sock, Room, Username);
-                        invalid -> gen_tcp:send(Sock, "close:error_invalid"), user(Sock, Room, Username)
+                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user(Sock, Username);
+                        invalid -> gen_tcp:send(Sock, "close:error_invalid"), user(Sock, Username)
                     end;
                 "game:ready" ->
                     {ok, Level} = login_manager:check_level(Username),
                     game_manager ! {ready, Level, self()},
                     receive 
-                        {ok, game_manager} -> gen_tcp:send(Sock, "game:ready"), user_ready(Sock,Room,Username)
+                        {ok, Game, game_manager} -> gen_tcp:send(Sock, "game:ready"), user_ready(Sock, Game, Username)
                         %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
                     end;
                 _ -> 
-                    Room ! {line, Data},
-                    user(Sock, Room, Username)
+                    lobby ! {line, Data},
+                    user(Sock, Username)
             end;
         {tcp_closed, _} ->
-            Room ! {leave, self()};
+            lobby ! {leave, self()};
         {tcp_error, _, _} ->
-            Room ! {leave, self()}
+            lobby ! {leave, self()}
     end.
 
-unready(Username) ->
+unready(Username, Game) ->
+    Game ! {abort, self()},
     {ok, Level} = login_manager:check_level(Username),
     game_manager ! {unready, Level, self()}.
 
-user_ready(Sock, Room, Username) -> 
+user_ready(Sock, Game, Username) -> 
     receive
         {start_game, Game, game_manager} ->
-            Room ! {leave, self()},
+            lobby ! {leave, self()},
             gen_tcp:send(Sock, "game:start"),
             player(Sock, Game, Username);
         {tcp, _, Data} ->
             case Data of
                 "logout" -> 
-                    unready(Username),
-                    Room ! {leave, self()},
+                    unready(Username, Game),
+                    lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
                 "close:" ++ Data -> 
                     case login_manager:close_account(Username, Data) of
                         ok -> 
-                            unready(Username),
-                            gen_tcp:send(Sock, "close:ok"), 
-                            Room ! {leave, self()};
+                            unready(Username, Game),
+                            lobby ! {leave, self()},
+                            gen_tcp:send(Sock, "close:ok");
 
-                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user_ready(Sock, Room, Username);
-                        invalid -> gen_tcp:send(Sock, "close:error_invalid"), user_ready(Sock, Room, Username)
+                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user_ready(Sock, Game, Username);
+                        invalid -> gen_tcp:send(Sock, "close:error_invalid"), user_ready(Sock, Game, Username)
                     end;
                 "game:unready" -> 
-                    unready(Username),
+                    unready(Username, Game),
                     receive 
-                        {ok, game_manager} -> gen_tcp:send(Sock, "game:unready"), user(Sock, Room, Username)
+                        {ok, game_manager} -> gen_tcp:send(Sock, "game:unready"), user(Sock,  Username)
                         %{error_not_ready, game_manager} -> gen_tcp:send(Sock, "game:error_not_ready"), user_ready(Sock, Room, Username)
                     end;
                 _ -> 
-                    Room ! {line, Data},
-                    user_ready(Sock, Room, Username)
+                    lobby ! {line, Data},
+                    user_ready(Sock, Game, Username)
             end;
         {tcp_closed, _} ->
-            unready(Username),
-            Room ! {leave, self()};
+            unready(Username, Game),
+            lobby ! {leave, self()};
         {tcp_error, _, _} ->
-            unready(Username),
-            Room ! {leave, self()}
+            unready(Username, Game),
+            lobby ! {leave, self()}
     end.
 
 player(Sock, Game, Username) -> 
     receive
+        {end_game, Game} -> user(Sock, Username);
         {tcp, _, Data} -> ok;
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok
