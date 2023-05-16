@@ -153,7 +153,10 @@ private void logRegMenu(){
   this.user.draw();
   this.password.draw();
   textAlign(CENTER, CENTER);
-  fill(255,160,122);
+  if(Objects.equals(this.message, "ok"))
+    fill(124,252,0);
+  else
+    fill(255,160,122);
   text(message, width*0.5f, height*0.80f);
   fill(206, 235, 251);
   triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
@@ -182,6 +185,7 @@ private void waitingMenu(){
     fill(220,20,60);
     text("Not Ready", width*0.5f,  height*0.42f);
   }
+  strokeWeight(0);
 }
 
 private void game() throws IOException{
@@ -232,15 +236,40 @@ public void draw(){
         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
           String username = this.user.getText();
           String password = this.password.getText();
-          this.menuImage = loadImage("images/space2.jpg");
-          this.menu = "waitingMenu";
+
+          if(this.registerMenu){
+            try {
+              this.connectionManager.send("register", username + ":" + password);
+            } catch (IOException e){
+              e.printStackTrace();
+            }
+            try {
+              this.message = this.connectionManager.receive("register");
+            } catch (IOException|InterruptedException e){
+              e.printStackTrace();
+            }
+          } else {
+            try {
+              this.connectionManager.send("login", username + ":" + password);
+            } catch (IOException e){
+              e.printStackTrace();
+            }
+            try {
+              this.message = this.connectionManager.receive("login");
+            } catch (IOException|InterruptedException e){
+              e.printStackTrace();
+            }
+            if(Objects.equals(this.message, "ok")) {
+              this.menuImage = loadImage("images/space2.jpg");
+              this.menu = "waitingMenu";
+            }
+          }
         }
       } else if(Objects.equals(this.menu, "waitingMenu")){
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           this.isReady = !this.isReady;
           this.menuImage = loadImage("images/space3.jpg");
           this.menu = "game";
-
         }
       }
     }
