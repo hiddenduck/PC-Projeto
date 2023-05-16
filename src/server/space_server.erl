@@ -14,38 +14,19 @@ server(Port) ->
     spawn(fun() -> acceptor(LSock) end),
     receive stop -> ok end.
 
-acceptor(LSock) ->
-    {ok, Sock} = gen_tcp:accept(LSock),
-    spawn(fun() -> acceptor(LSock) end),
-    main_menu(Sock).
-
-main_menu(Sock) ->
+lobby(Users) ->
     receive
-        {tcp, _, "create:" ++ Data} ->
-            [Username, Password] = re:split(Data, "[:]"),
-            case login_manager:create_account(Username, Password) of
-                ok -> gen_tcp:send(Sock, "create:ok");
-                user_exists -> gen_tcp:send(Sock, "create:error_user_exists")
-            end,
-            main_menu(Sock);
-        {tcp, _, "login:" ++ Data} -> 
-            [Username, Password] = re:split(Data, "[:]"),
-            case login_manager:login(Username, Password) of
-                ok ->
-                    lobby ! {enter, "lobby", self()},
-                    gen_tcp:send(Sock, "login:ok"),
-                    user(Sock, Username);
-                invalid_password ->
-                    gen_tcp:send(Sock, "login:error_invalid_password"),
-                    main_menu(Sock);
-                _ ->
-                    gen_tcp:send(Sock, "login:error_unknown_username"),
-                    main_menu(Sock)
-            end;
-        {tcp_error, _, _} -> ok;
-        {tcp_closed, _, _} -> ok;
-        _ -> gen_tcp:send(Sock, "login:error_unknown_command")
-    end.
+        {enter, User} ->
+            io:format("user entered ~p ~n", []),
+            lobby([User | Users]);
+        {line, Data} = Msg ->
+            io:format("received  ~p ~n", [Data]),
+            [User ! Msg || User <- Users],
+            lobby(Users);
+        {leave, User} ->
+            io:format("user left ~n", []),
+            lobby(Users -- [User])
+    end.  
 
 game_manager(Room_map, Game_Rooms) ->
     receive
@@ -82,23 +63,8 @@ game_manager(Room_map, Game_Rooms) ->
             game_manager(Room_map, Game_Rooms -- [Game])
     end.
 
-game([FstPlayer]) ->
-    receive 
-        {abort, FstPlayer} -> ok;
-        %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
-        %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
-        {start, SndPlayer, game_manager} ->
-            sync_up(FstPlayer, SndPlayer)
-    end;
-
-game([FstPlayer, SndPlayer]) -> 
-    receive
-        {abort, User} -> 
-            %pontuar o outro jogador
-            ok
-    end.
-
 sync_up(FstPlayer, SndPlayer) ->
+    %Avisar os utilizadores para entrarem no jogo
     FstPlayer ! {start_game, self()},
     SndPlayer ! {start_game, self()},
     receive
@@ -115,19 +81,54 @@ sync_up(FstPlayer, SndPlayer) ->
             SndPlayer ! {end_game, self()}
     end.
 
-lobby(Users) ->
+game([FstPlayer]) ->
+    receive 
+        {abort, FstPlayer} -> ok;
+        %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
+        %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
+        {start, SndPlayer, game_manager} ->
+            sync_up(FstPlayer, SndPlayer)
+    end;
+
+game([FstPlayer, SndPlayer]) -> 
     receive
-        {enter, User} ->
-            io:format("user entered ~p ~n", []),
-            lobby([User | Users]);
-        {line, Data} = Msg ->
-            io:format("received  ~p ~n", [Data]),
-            [User ! Msg || User <- Users],
-            lobby(Users);
-        {leave, User} ->
-            io:format("user left ~n", []),
-            lobby(Users -- [User])
-    end.  
+        {abort, User} -> 
+            %pontuar o outro jogador
+            ok
+    end.
+
+main_menu(Sock) ->
+    receive
+        {tcp, _, "create:" ++ Data} ->
+            [Username, Password] = re:split(Data, "[:]"),
+            case login_manager:create_account(Username, Password) of
+                ok -> gen_tcp:send(Sock, "create:ok");
+                user_exists -> gen_tcp:send(Sock, "create:error_user_exists")
+            end,
+            main_menu(Sock);
+        {tcp, _, "login:" ++ Data} -> 
+            [Username, Password] = re:split(Data, "[:]"),
+            case login_manager:login(Username, Password) of
+                ok ->
+                    lobby ! {enter, "lobby", self()},
+                    gen_tcp:send(Sock, "login:ok"),
+                    user(Sock, Username);
+                invalid_password ->
+                    gen_tcp:send(Sock, "login:error_invalid_password"),
+                    main_menu(Sock);
+                _ ->
+                    gen_tcp:send(Sock, "login:error_unknown_username"),
+                    main_menu(Sock)
+            end;
+        {tcp_error, _, _} -> ok;
+        {tcp_closed, _, _} -> ok;
+        _ -> gen_tcp:send(Sock, "login:error_unknown_command")
+    end.
+
+acceptor(LSock) ->
+    {ok, Sock} = gen_tcp:accept(LSock),
+    spawn(fun() -> acceptor(LSock) end),
+    main_menu(Sock).
 
 user(Sock, Username) ->
     receive
