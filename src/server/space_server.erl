@@ -73,7 +73,7 @@ sync_up(FstPlayer, SndPlayer) ->
                 {ok, SndPlayer} -> game([FstPlayer, SndPlayer])
                 after 6000 -> 
                     game_manager ! {end_game, self()},
-                    SndPlayer ! {end_game, self()}
+                    FstPlayer ! {end_game, self()}
             end
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
         after 6000 -> 
