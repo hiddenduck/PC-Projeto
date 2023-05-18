@@ -2,6 +2,7 @@
 -export([start/1, stop/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
+-define(GAMETIME, 120000).
 
 start(Port) -> register(?MODULE, spawn(fun() -> server(Port) end)).
 
@@ -62,7 +63,7 @@ game_manager(RoomMap, GameRooms) ->
                     game_manager(New_Map, [Game | GameRooms]);
                 _ ->
                     %criar uma espera
-                    Game = spawn(fun()-> game([{User, Username}]) end),
+                    Game = spawn(fun()-> ready([{User, Username}]) end),
                     User ! {ok, Game, game_manager},
                     game_manager(RoomMap#{Level => Game}, GameRooms)
             end;
@@ -72,20 +73,21 @@ game_manager(RoomMap, GameRooms) ->
 
 sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     %Avisar os utilizadores para entrarem no jogo
-    FstPlayer ! {start_game, self()},
-    SndPlayer ! {start_game, self()},
+    {Player1Sim, Player2Sim, Game} = simulation:start_game(),
+    FstPlayer ! {start_game, Player1Sim, self()},
+    SndPlayer ! {start_game, Player2Sim, self()},
     receive
         %sei lá
         {ok, FstPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
                 after 6000 -> 
                     game_manager ! {end_game, self()},
                     FstPlayer ! {end_game, self()}
             end;
         {ok, SndPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
                 after 6000 -> 
                     game_manager ! {end_game, self()},
                     SndPlayer ! {end_game, self()}
@@ -97,7 +99,7 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
             SndPlayer ! {end_game, self()}
     end.
 
-game([{FstUsername, FstPlayer}]) ->
+ready([{FstUsername, FstPlayer}]) ->
     receive 
         {abort, FstPlayer} -> 
             game_manager ! {end_game, self()};
@@ -105,25 +107,26 @@ game([{FstUsername, FstPlayer}]) ->
         %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
         {start, SndUsername, SndPlayer, game_manager} ->
             sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
-    end;
+    end.
 
-game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
-    
+game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) -> 
     receive
         {abort, FstPlayer} ->
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
             end_game({SndUsername, SndPlayer}, {FstUsername, FstPlayer});
+
         {abort, SndPlayer} -> 
-            end_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer});
-        _ -> 
-            game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
+            end_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
+
+        after ?GAMETIME ->
+            end_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
     end.
 
 end_game({WinnerName, Winner}, {LoserName, Loser}) ->
+    Winner ! {end_game, self()},
+    Loser ! {end_game, self()},
     {ok, WinnerLevel, LoserLevel} = level_manager:end_game(WinnerName, LoserName),
-    Winner ! {end_game, WinnerLevel, self()},
-    Loser ! {end_game, LoserLevel, self()},
     game_manager ! {end_game, self()}.
 
 main_menu(Sock) ->
@@ -202,10 +205,10 @@ unready(Username, Game) ->
 
 user_ready(Sock, Game, Username) -> 
     receive
-        {start_game, Game, game_manager} ->
+        {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
             gen_tcp:send(Sock, "game:start"),
-            player(Sock, Game, Username);
+            player(Sock, Game, Simulation, Username);
         {tcp, _, Data} ->
             case Data of
                 "logout" -> 
@@ -237,11 +240,11 @@ user_ready(Sock, Game, Username) ->
             lobby ! {leave, self()}
     end.
 
-player(Sock, Game, Username) -> 
+player(Sock, Game, Simulation, Username) -> 
     receive
         {end_game, Game} -> user(Sock, Username);
         {tcp, _, Data} -> ok;
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok;
-        _ -> player(Sock, Game, Username)
+        _ -> player(Sock, Game, Simulation, Username)
     end.
