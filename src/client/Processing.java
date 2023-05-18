@@ -92,6 +92,8 @@ public class Processing extends PApplet{
 
   private Communicator[] communicators;
 
+  private Map<Character, Triple> colorMap;
+
   //private Thread accountMessenger;
 
   //private String accountMessage;
@@ -108,6 +110,7 @@ public void setup(){
   this.isReady = false;
   this.gameState = new GameState();
   this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
+
   this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, false);
   this.communicators[0].start();
   this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, true);
@@ -120,6 +123,10 @@ public void setup(){
   this.communicators[4].start();
 
   this.keysPressed = new boolean[3];
+  this.colorMap = new HashMap<>();
+  this.colorMap.put('r', new Triple(255,0,0));
+  this.colorMap.put('g', new Triple(34,139,34));
+  this.colorMap.put('b', new Triple(0,191,255));
   /*
   this.accountMessenger = new Thread(() -> {
     try {
@@ -201,9 +208,29 @@ private void waitingMenu(){
 
 private void game() throws IOException{
   background(this.menuImage);
-  fill(0,0,112);
+  fill(119,136,153);
   rect(width*0.1f,height*0.1f, 600, 600);
-  GameState gameDraw = this.gameState.copy();
+
+  GameState gameDraw;
+  this.gameState.lrw.writeLock().lock();
+  try {
+    gameDraw = this.gameState.copy();
+  } finally {
+    this.gameState.lrw.writeLock().unlock();
+  }
+
+  fill(46,123,238);
+  ellipse(gameDraw.posX, gameDraw.posY, 1, 1);
+  fill(238,46,59);
+  ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 1, 1);
+
+  Triple triple;
+  for(Triple box: gameDraw.boxes){
+    triple = this.colorMap.get(box.chars[0]);
+    fill(triple.floats[0], triple.floats[1], triple.floats[2]);
+    rect(box.floats[0], box.floats[1], 1, 1);
+  }
+
   if(this.keysPressed[0]|| this.keysPressed[1] ||this.keysPressed[2]) // if something fishy, the bug is probably here
     this.connectionManager.send("move", Arrays.toString(this.keysPressed));
 }
@@ -248,6 +275,10 @@ public void draw(){
         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
           String username = this.user.getText();
           String password = this.password.getText();
+          if(username.equals(""))
+            this.message = "Empty Username";
+          if(password.equals(""))
+            this.message = "Empty Password";
 
           if(this.registerMenu){
             try {
@@ -312,15 +343,15 @@ public void draw(){
   }
 
   public static void main(String[] args) {
-    //if(args.length < 2)
-    //    System.exit(1);
+    if(args.length < 2)
+        System.exit(1);
 
-    //String host = args[0];
-    //int port = Integer.parseInt(args[1]);
+    String host = args[0];
+    int port = Integer.parseInt(args[1]);
 
     try{
-      //Socket socket = new Socket(host, port);
-      //ConnectionManager cm = ConnectionManager.start(socket);
+      Socket socket = new Socket(host, port);
+      ConnectionManager cm = ConnectionManager.start(socket);
 
       String[] processingArgs = {"Processing"};
       PApplet.runSketch(processingArgs, new Processing(null));

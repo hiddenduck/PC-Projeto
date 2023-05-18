@@ -1,14 +1,39 @@
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+class Triple{
+    public float[] floats;
+    public char[] chars;
+
+    public Triple(float x, float y, float z){
+        this.floats = new float[3];
+        this.floats[0] = x;
+        this.floats[1] = y;
+        this.floats[2] = z;
+    }
+
+    public Triple(float x, float y, char z){
+        this.floats = new float[2];
+        this.chars = new char[1];
+        this.floats[0] = x;
+        this.floats[1] = y;
+        this.chars[0] = z;
+    }
+}
 
 public class GameState {
 
     public ReadWriteLock lrw = new ReentrantReadWriteLock();
-    private float posX, posY, enemyPosX, enemyPosY, alfa, enemyAlfa;
+    public float posX, posY, enemyPosX, enemyPosY, alfa, enemyAlfa;
 
-    private int point, enemyPoint;
+    public int point, enemyPoint;
 
-    private char gameStatus;
+    public char gameStatus;
+
+    public Set<Triple> boxes;
 
     public GameState(){
         this.lrw = new ReentrantReadWriteLock();
@@ -25,6 +50,7 @@ public class GameState {
         this.point = point;
         this.enemyPoint = enemyPoint;
         this.gameStatus = gameStatus;
+        this.boxes = new HashSet<>();
     }
 
     public void putPos(float x, float y, float alfa, boolean enemy){
@@ -42,6 +68,14 @@ public class GameState {
     public void putPoint(int point, int enemyPoint){
         this.point = point;
         this.enemyPoint = enemyPoint;
+    }
+
+    public void putBox(Triple newBox){
+        this.boxes.add(newBox);
+    }
+
+    public void removeBox(Triple oldBox){
+        this.boxes.remove(oldBox);
     }
 
     public void setGameStatus(char c){
