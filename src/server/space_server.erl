@@ -33,7 +33,7 @@ lobby(Users) ->
     end.  
 
 %Gestor dos jogos
-%RoomMap é um mapa que associa níveis a jogos, que é limpo sempre que um jogo de um dado nível começa
+%RoomMap é um mapa que associa níveis ao jogador que o começou, que é limpo sempre que um jogo de um dado nível começa
 %GameRooms contém todas as salas de jogos em andamento
 %A junção de GameRooms com o Lobby dá todos os jogadores atualmente online
 game_manager(RoomMap, GameRooms) ->
@@ -57,48 +57,27 @@ game_manager(RoomMap, GameRooms) ->
                     %TODO simplificar o game_manager para não perder tempo em burocracias
                     %juntar-se ao jogo
                     %Não queremos que o game manager lide com burocracia lenta
-                    User ! {ok, Game, game_manager},
+                    %Game = spawn(fun() -> sync_up({Other, Othername}, {User, Username}) end),
                     Game ! {start, Username, User, game_manager},
+                    User ! {ok, Game, game_manager},
                     New_Map = maps:remove(Level, RoomMap),
                     game_manager(New_Map, [Game | GameRooms]);
                 _ ->
                     %criar uma espera
                     Game = spawn(fun()-> ready([{User, Username}]) end),
                     User ! {ok, Game, game_manager},
-                    game_manager(RoomMap#{Level => Game}, GameRooms)
+                    game_manager(RoomMap#{Level => {User, Game}}, GameRooms)
             end;
         {end_game, Game} ->
             game_manager(RoomMap, GameRooms -- [Game])
     end.
 
-sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
-    %Avisar os utilizadores para entrarem no jogo
-    {Player1Sim, Player2Sim, Game} = simulation:start_game(),
-    FstPlayer ! {start_game, Player1Sim, self()},
-    SndPlayer ! {start_game, Player2Sim, self()},
-    receive
-        %sei lá
-        {ok, FstPlayer} -> 
-            receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
-                after 6000 -> 
-                    game_manager ! {end_game, self()},
-                    FstPlayer ! {end_game, self()}
-            end;
-        {ok, SndPlayer} -> 
-            receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
-                after 6000 -> 
-                    game_manager ! {end_game, self()},
-                    SndPlayer ! {end_game, self()}
-            end;
-        %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
-        {abort, FstPlayer} -> ok
-        after 6000 -> 
-            game_manager ! {end_game, self()},
-            SndPlayer ! {end_game, self()}
-    end.
-
+%Função de espera que correrá depois da chamada ready de um utilizador
+%Ainda não tenho a certeza da necessidade da sua existência, o game_manager pode se calhar dar spawn a um sync_up
+%Se calhar é mesmo preciso para receber os aborts a tempo
+%Um jogador dá ready. 
+%O segundo jogador dá ready e depois o primeiro cancela o jogo, enquanto o ecrã dele ainda não recebeu o ok
+%O primeiro tem de poder abortar o jogo, mas esse abort ainda não pode chegar ao sync_up se o game não existir
 ready([{FstUsername, FstPlayer}]) ->
     receive 
         {abort, FstPlayer} -> 
@@ -109,24 +88,53 @@ ready([{FstUsername, FstPlayer}]) ->
             sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
     end.
 
+%Função chamada depois da ligação de ambos os jogadores, para começar a Simulação e sintonizar ambos os jogadores
+%Se algum for cancelado dentro de um minuto o jogo não ocorre e pontos não são dados
+%As simulações são passadas para cada um dos jogadores
+sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
+    %Avisar os utilizadores para entrarem no jogo
+    {Player1Sim, Player2Sim, Game} = simulation:start_game(),
+    FstPlayer ! {start_game, Player1Sim, self()},
+    SndPlayer ! {start_game, Player2Sim, self()},
+    receive
+        %sei lá
+        {ok, FstPlayer} -> 
+            receive
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
+                after 6000 -> ok
+            end;
+        {ok, SndPlayer} -> 
+            receive
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
+                after 6000 -> ok
+            end;
+        %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
+        {abort, FstPlayer} -> ok
+        after 6000 -> ok
+    end,
+    end_game(FstPlayer, SndPlayer, Game).
+
 game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) -> 
+    Game ! {start_game, self()},
     receive
         {abort, FstPlayer} ->
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
-            end_game({SndUsername, SndPlayer}, {FstUsername, FstPlayer});
+            {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
 
         {abort, SndPlayer} -> 
-            end_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
+            {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
+        %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
+        %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
+        %Talvez esta indireção (este game aqui) seja inútil e os aborts possam existir diretamente no game da simulação
+        after ?GAMETIME -> ok
+    end,
+    end_game(FstPlayer, SndPlayer, Game).
 
-        after ?GAMETIME ->
-            end_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
-    end.
-
-end_game({WinnerName, Winner}, {LoserName, Loser}) ->
-    Winner ! {end_game, self()},
-    Loser ! {end_game, self()},
-    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(WinnerName, LoserName),
+end_game(Player1, Player2, Game) ->
+    Game ! {end_game, self()},
+    Player1 ! {end_game, self()},
+    Player2 ! {end_game, self()},
     game_manager ! {end_game, self()}.
 
 main_menu(Sock) ->
