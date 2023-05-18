@@ -13,6 +13,9 @@
 		start_game/2,
 		end_game/2]).
 
+%Inicia o servidor e o levels_manager como processos que correm determinadas funções.
+
+%documentar melhor, so esbocei
 
 start() ->
 	case file:read_file("passwords") of
@@ -29,45 +32,57 @@ start() ->
 	%se o file_manager for um processo pode ser que não funcione se for ultrapassado
 	%register(file_manager, spawn(fun() -> file_manager() end)).
 
+%Envia uma certa mensagem ao servidor esperando uma resposta do mesmo.
 invoke(Request) ->
 	?MODULE ! {Request, self()},
 	receive {Res, ?MODULE} -> Res end.
 
+%Permite a um cliente criar uma conta.
 create_account(Username, Passwd) ->
 	invoke({create_account, Username, Passwd}).
 	
+%Informa o level_manager que um jogador deve subir de nível. Recebe como resposta o novo nível do jogador.
 level_up(Username) ->
 	level_manager ! {level_up, Username, self()},
 	receive {Status, New_Level, level_manager} -> {Status, New_Level} end.
 
+%Informa o level_manager que um jogador deve descer de nível. Recebe como resposta o novo nível do jogador.
 level_down(Username) ->
 	level_manager ! {level_down, Username, self()},
 	receive {Status, New_Level, level_manager} -> {Status, New_Level} end.
 
+%Permite-nos saber em que nível se encontra um determinado jogador.
 check_level(Username) ->
 	level_manager ! {start_game, Username, self()},
 	receive {Status, Level, level_manager} -> {Status, Level} end.
 
+%Informa o level_manager que se pretende iniciar um jogo entre dois jogadores. Obtém como resposta os níveis dos dois jogadores que devem ser iguais para que o jogo se inicie.
 start_game(FstUsername, SecUsername) ->
 	level_manager ! {start_game, FstUsername, SecUsername, self()},
 	receive {Status, FstLevel, SecLevel, level_manager} -> {Status, FstLevel, SecLevel} end.
 
+%Informa o level_manager que um jogo terminou e indica o respetivo vencedor. Recebe como resposta os novos níveis dos dois jogadores.
 end_game(Winner, Loser) ->
 	level_manager ! {end_game, Winner, Loser, self()},
 	receive {Status, WinnerLevel, LoserLevel, level_manager} -> {Status, WinnerLevel, LoserLevel} end.
 
+%Permite fechar a conta de um jogador.
 close_account(Username, Passwd) ->
 	invoke({close_account, Username, Passwd}).
 
+%Permite o login de um utilizador.
 login(Username, Passwd) ->
 	invoke({login, Username, Passwd}).
 
+%Permite um jogador ficar offline.
 logout(Username) ->
 	invoke({logout, Username}).
 
+%Devolve a lista dos jogadores que estão online.
 online() ->
 	invoke(online).
 
+%Espera receber diversos tipos de pedido e retorna um novo estado a ser chamado pela função do servidor recursivamente.
 handle(Request, Map) ->
 	case Request of 
 		{create_account, Username, Passwd} -> 
@@ -110,7 +125,7 @@ handle(Request, Map) ->
 		%	{Res, Map}
 	end.
 
-
+%Função que corre no servidor. Conforma a mensagem recebida, obtém um novo estado do mapa na função handle, responde ao cliente e executa-se recursivamente.
 loop(Map) ->
 	receive
 		{{create_account, Username, Passwd}, From} ->
@@ -126,6 +141,7 @@ loop(Map) ->
 			file:write_file("passwords", erlang:term_to_binary(Map))
 	end.
 
+%Função que corre recursivamente no levels_manager. Espera uma mensagem para manipulação de níveis/jogos e responde diretamente ao cliente. Chama-se recursivamente com possíevis novos estados.
 loop_levels(Map) ->
 	receive
 		{set_level, Username, From} ->
@@ -190,6 +206,7 @@ loop_levels(Map) ->
 	end.
 
 
+%Envia ao servidor e ao levels_manager uma mensagem para pararem a sua execução.
 stop() ->
 	?MODULE ! stop,
 	level_manager ! stop,
