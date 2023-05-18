@@ -7,6 +7,8 @@ start(Port) -> register(?MODULE, spawn(fun() -> server(Port) end)).
 
 stop() -> ?MODULE ! stop.
 
+%Início do registo do server, começa com um ListeningSocket para ir gerando um para cada jogador
+%Regista dois processos, um como o lobby e outro como o game_manager, depois torna-se no acceptor
 server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
     register(lobby, spawn(fun()-> lobby([]) end)),
@@ -14,6 +16,7 @@ server(Port) ->
     spawn(fun() -> acceptor(LSock) end),
     receive stop -> ok end.
 
+%Lobby como sala tirada diretamente das salas definidas nas aulas práticas
 lobby(Users) ->
     receive
         {enter, User} ->
@@ -28,41 +31,46 @@ lobby(Users) ->
             lobby(Users -- [User])
     end.  
 
-game_manager(Room_map, Game_Rooms) ->
+%Gestor dos jogos
+%RoomMap é um mapa que associa níveis a jogos, que é limpo sempre que um jogo de um dado nível começa
+%GameRooms contém todas as salas de jogos em andamento
+%A junção de GameRooms com o Lobby dá todos os jogadores atualmente online
+game_manager(RoomMap, GameRooms) ->
     receive
         {unready, Level, User} -> 
-            case maps:find(Level, Room_map) of
+            case maps:find(Level, RoomMap) of
                 {ok, {_, User}} ->
-                    New_Map = maps:remove(Level, Room_map);
+                    New_Map = maps:remove(Level, RoomMap);
                 _ ->
                     %Se alguém estiver ready e não for este não se faz nada?
-                    New_Map = Room_map,
+                    New_Map = RoomMap,
                     User ! {error_not_ready, game_manager}    
             end,
-            game_manager(New_Map, Game_Rooms);
-        {ready, Level, User} ->
-            case maps:find(Level, Room_map) of
+            game_manager(New_Map, GameRooms);
+        {ready, Level, Username, User} ->
+            case maps:find(Level, RoomMap) of
                 {ok, {User, _}} ->
                     User ! {error_already_ready, game_manager},
-                    game_manager(Room_map, Game_Rooms);
+                    game_manager(RoomMap, GameRooms);
                 {ok, {_, Game}} ->
                     %TODO simplificar o game_manager para não perder tempo em burocracias
                     %juntar-se ao jogo
+                    %Não queremos que o game manager lide com burocracia lenta
                     User ! {ok, Game, game_manager},
-                    Game ! {start, User, game_manager},
-                    New_Map = maps:remove(Level, Room_map),
-                    game_manager(New_Map, [Game | Game_Rooms]);
+                    Game ! {start, Username, User, game_manager},
+                    New_Map = maps:remove(Level, RoomMap),
+                    game_manager(New_Map, [Game | GameRooms]);
                 _ ->
                     %criar uma espera
-                    Game = spawn(fun()-> game([User]) end),
+                    Game = spawn(fun()-> game([{User, Username}]) end),
                     User ! {ok, Game, game_manager},
-                    game_manager(Room_map#{Level => Game}, Game_Rooms)
+                    game_manager(RoomMap#{Level => Game}, GameRooms)
             end;
         {end_game, Game} ->
-            game_manager(Room_map, Game_Rooms -- [Game])
+            game_manager(RoomMap, GameRooms -- [Game])
     end.
 
-sync_up(FstPlayer, SndPlayer) ->
+sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     %Avisar os utilizadores para entrarem no jogo
     FstPlayer ! {start_game, self()},
     SndPlayer ! {start_game, self()},
@@ -70,14 +78,14 @@ sync_up(FstPlayer, SndPlayer) ->
         %sei lá
         {ok, FstPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([FstPlayer, SndPlayer])
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
                 after 6000 -> 
                     game_manager ! {end_game, self()},
                     FstPlayer ! {end_game, self()}
             end;
         {ok, SndPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([FstPlayer, SndPlayer])
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
                 after 6000 -> 
                     game_manager ! {end_game, self()},
                     SndPlayer ! {end_game, self()}
@@ -89,35 +97,47 @@ sync_up(FstPlayer, SndPlayer) ->
             SndPlayer ! {end_game, self()}
     end.
 
-game([FstPlayer]) ->
+game([{FstUsername, FstPlayer}]) ->
     receive 
         {abort, FstPlayer} -> 
             game_manager ! {end_game, self()};
         %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
         %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
-        {start, SndPlayer, game_manager} ->
-            sync_up(FstPlayer, SndPlayer)
+        {start, SndUsername, SndPlayer, game_manager} ->
+            sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
     end;
 
-game([FstPlayer, SndPlayer]) -> 
+game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
+    
     receive
-        {abort, User} -> 
+        {abort, FstPlayer} ->
             %pontuar o outro jogador
-            ok
+            %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
+            end_game({SndUsername, SndPlayer}, {FstUsername, FstPlayer});
+        {abort, SndPlayer} -> 
+            end_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer});
+        _ -> 
+            game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
     end.
+
+end_game({WinnerName, Winner}, {LoserName, Loser}) ->
+    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(WinnerName, LoserName),
+    Winner ! {end_game, WinnerLevel, self()},
+    Loser ! {end_game, LoserLevel, self()},
+    game_manager ! {end_game, self()}.
 
 main_menu(Sock) ->
     receive
         {tcp, _, "create:" ++ Data} ->
             [Username, Password] = re:split(Data, "[:]"),
-            case login_manager:create_account(Username, Password) of
+            case level_manager:create_account(Username, Password) of
                 ok -> gen_tcp:send(Sock, "create:ok");
                 user_exists -> gen_tcp:send(Sock, "create:error_user_exists")
             end,
             main_menu(Sock);
         {tcp, _, "login:" ++ Data} -> 
             [Username, Password] = re:split(Data, "[:]"),
-            case login_manager:login(Username, Password) of
+            case level_manager:login(Username, Password) of
                 ok ->
                     lobby ! {enter, "lobby", self()},
                     gen_tcp:send(Sock, "login:ok"),
@@ -150,7 +170,7 @@ user(Sock, Username) ->
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
                 "close:" ++ Data -> 
-                    case login_manager:close_account(Username, Data) of
+                    case level_manager:close_account(Username, Data) of
                         ok ->
                             lobby ! {leave, self()},
                             gen_tcp:send(Sock, "close:ok");
@@ -159,8 +179,8 @@ user(Sock, Username) ->
                         invalid -> gen_tcp:send(Sock, "close:error_invalid"), user(Sock, Username)
                     end;
                 "game:ready" ->
-                    {ok, Level} = login_manager:check_level(Username),
-                    game_manager ! {ready, Level, self()},
+                    {ok, Level} = level_manager:check_level(Username),
+                    game_manager ! {ready, Level, Username, self()},
                     receive 
                         {ok, Game, game_manager} -> gen_tcp:send(Sock, "game:ready"), user_ready(Sock, Game, Username)
                         %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
@@ -177,7 +197,7 @@ user(Sock, Username) ->
 
 unready(Username, Game) ->
     Game ! {abort, self()},
-    {ok, Level} = login_manager:check_level(Username),
+    {ok, Level} = level_manager:check_level(Username),
     game_manager ! {unready, Level, self()}.
 
 user_ready(Sock, Game, Username) -> 
@@ -193,7 +213,7 @@ user_ready(Sock, Game, Username) ->
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
                 "close:" ++ Data -> 
-                    case login_manager:close_account(Username, Data) of
+                    case level_manager:close_account(Username, Data) of
                         ok -> 
                             unready(Username, Game),
                             lobby ! {leave, self()},
@@ -205,7 +225,7 @@ user_ready(Sock, Game, Username) ->
                 "game:unready" -> 
                     unready(Username, Game),
                     gen_tcp:send(Sock, "game:unready"), user(Sock,  Username);
-                _ -> 
+                "msg:" ++ Data -> 
                     lobby ! {line, Data},
                     user_ready(Sock, Game, Username)
             end;
@@ -222,5 +242,6 @@ player(Sock, Game, Username) ->
         {end_game, Game} -> user(Sock, Username);
         {tcp, _, Data} -> ok;
         {tcp_closed, _} -> ok;
-        {tcp_error, _, _} -> ok
+        {tcp_error, _, _} -> ok;
+        _ -> player(Sock, Game, Username)
     end.

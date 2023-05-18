@@ -1,4 +1,4 @@
--module(login_manager).
+-module(file_manager).
 -export([start/0, 
 		create_account/2, 
 		close_account/2, 
@@ -10,7 +10,8 @@
 		level_up/1,
 		level_down/1,
 		check_level/1,
-		start_match/2]).
+		start_game/2,
+		end_game/2]).
 
 
 start() ->
@@ -23,7 +24,7 @@ start() ->
 		{ok, LevelsBin} -> Levels = erlang:binary_to_term(LevelsBin)
 	end,
 	register(?MODULE, spawn(fun() -> loop(Passwords) end)), 
-	register(levels_manager, spawn(fun() -> loop_levels(Levels) end)),
+	register(level_manager, spawn(fun() -> loop_levels(Levels) end)),
 	{Passwords, Levels}.
 	%se o file_manager for um processo pode ser que não funcione se for ultrapassado
 	%register(file_manager, spawn(fun() -> file_manager() end)).
@@ -36,20 +37,24 @@ create_account(Username, Passwd) ->
 	invoke({create_account, Username, Passwd}).
 	
 level_up(Username) ->
-	levels_manager ! {level_up, Username, self()},
-	receive {Status, New_Level, levels_manager} -> {Status, New_Level} end.
+	level_manager ! {level_up, Username, self()},
+	receive {Status, New_Level, level_manager} -> {Status, New_Level} end.
 
 level_down(Username) ->
-	levels_manager ! {level_down, Username, self()},
-	receive {Status, New_Level, levels_manager} -> {Status, New_Level} end.
+	level_manager ! {level_down, Username, self()},
+	receive {Status, New_Level, level_manager} -> {Status, New_Level} end.
 
 check_level(Username) ->
-	levels_manager ! {start_match, Username, self()},
-	receive {Status, Level, levels_manager} -> {Status, Level} end.
+	level_manager ! {start_game, Username, self()},
+	receive {Status, Level, level_manager} -> {Status, Level} end.
 
-start_match(FstUsername, SecUsername) ->
-	levels_manager ! {start_match, FstUsername, SecUsername, self()},
-	receive {Status, FstLevel, SecLevel, levels_manager} -> {Status, FstLevel, SecLevel} end.
+start_game(FstUsername, SecUsername) ->
+	level_manager ! {start_game, FstUsername, SecUsername, self()},
+	receive {Status, FstLevel, SecLevel, level_manager} -> {Status, FstLevel, SecLevel} end.
+
+end_game(Winner, Loser) ->
+	level_manager ! {end_game, Winner, Loser, self()},
+	receive {Status, WinnerLevel, LoserLevel, level_manager} -> {Status, WinnerLevel, LoserLevel} end.
 
 close_account(Username, Passwd) ->
 	invoke({close_account, Username, Passwd}).
@@ -68,7 +73,7 @@ handle(Request, Map) ->
 		{create_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				error -> 
-					levels_manager ! {set_level, Username, self()},
+					level_manager ! {set_level, Username, self()},
 					{ok, 1, Map#{Username => Passwd}};
 				_ ->
 					{user_exists, 0, Map}
@@ -126,76 +131,57 @@ loop_levels(Map) ->
 		{set_level, Username, From} ->
 			case maps:find(Username, Map) of
 				error ->
-					From ! {ok,1, levels_manager}, 
+					From ! {ok,1, level_manager}, 
 					loop_levels(maps:put(Username, {1, 0}, Map));
 				{ok, {Level,_}} ->
-					From ! {user_exists, Level, levels_manager},
+					From ! {user_exists, Level, level_manager},
 					loop_levels(Map)
 			end;
 		{level_up, Username, From} ->
 			case maps:find(Username, Map) of
 				{ok, {Level,_}} ->
-					From ! {ok, Level+1, levels_manager}, 
+					From ! {ok, Level+1, level_manager}, 
 					loop_levels(maps:put(Username, {Level+1, 0}, Map));
 				error ->
-					From ! {invalid_user, 0, levels_manager},
+					From ! {invalid_user, 0, level_manager},
 					loop_levels(Map)
 			end;
 		{level_down, Username, From} ->
 			case maps:find(Username, Map) of
 				{ok, {1,_}} ->
-					From ! {ok,1, levels_manager}, 
+					From ! {ok,1, level_manager}, 
 					loop_levels(Map);
 				{ok, {Level,_}} ->
-					From ! {ok, Level-1, levels_manager},
+					From ! {ok, Level-1, level_manager},
 					loop_levels(maps:put(Username, {Level-1, 0}, Map));
 				error ->
-					From ! {invalid_user, 0, levels_manager},
+					From ! {invalid_user, 0, level_manager},
 					loop_levels(Map)
 			end;
 		{check_level, Username, From} ->
 			case maps:find(Username, Map) of 
 				error ->
-					From ! {invalid_user, 0, levels_manager},
+					From ! {invalid_user, 0, level_manager},
 					loop_levels(Map);
 				{ok, {Level, _}} ->
-					From ! {ok, Level, levels_manager},
+					From ! {ok, Level, level_manager},
 					loop_levels(Map)
 			end;
-		{start_match, FstUsername, SecUsername, From} ->
-			case maps:find(FstUsername, Map) of 
-				error ->
-					From ! {invalid_fstuser, 0, 0, levels_manager},
-					loop_levels(Map);
-				{ok, {Level, _}} ->
-					case maps:find(SecUsername, Map) of 
-						error ->
-							From ! {invalid_secuser, 0, 0, levels_manager},
-							loop_levels(Map);
-						{ok, {Level, _}} ->
-							From ! {ok, Level, Level, levels_manager},
-							loop_levels(Map);
-						{ok, {OtherLevel, _}} ->
-							From ! {different_levels, Level, OtherLevel, levels_manager},
-							loop_levels(Map)
-
-					end
-			end;
-		{end_match, Winner, Loser, From} ->
+		{end_game, Winner, Loser, From} ->
 			case maps:find(Winner, Map) of 
 				error ->
-					From ! {invalid_winner, 0, 0, levels_manager},
+					From ! {invalid_winner, 0, 0, level_manager},
 					loop_levels(Map);
 				{ok, {Level, Wins}} ->
 					case maps:find(Loser, Map) of 
 						error ->
-							From ! {invalid_loser, 0, 0, levels_manager},
+							From ! {invalid_loser, 0, 0, level_manager},
 							loop_levels(Map);
 						{ok, {OtherLevel, _}} ->
 							if Wins+1 == Level*2 -> NewLevel = Level+1, NewWins = 0 ;
 							   true -> NewLevel = Level, NewWins = Wins+1
 							end,
-							From ! {ok, NewLevel, OtherLevel, levels_manager},
+							From ! {ok, NewLevel, OtherLevel, level_manager},
 							loop_levels(Map#{Winner => {NewLevel, NewWins}})
 					end
 			end;
@@ -206,7 +192,7 @@ loop_levels(Map) ->
 
 stop() ->
 	?MODULE ! stop,
-	levels_manager ! stop,
+	level_manager ! stop,
 	ok.
 
 test() ->
@@ -225,6 +211,6 @@ test() ->
 	level_up("hugo_rocha_sec"),
 	level_up("hugo_rocha_sec"),
 	level_up("hugo_rocha_sec"),
-	J = start_match("hugo_rocha", "hugo_rocha_sec"),
+	J = start_game("hugo_rocha", "hugo_rocha_sec"),
 	Z = stop(),
 	{A,B,K,L,C,D,E,F,G,H,I,J,Z}.
