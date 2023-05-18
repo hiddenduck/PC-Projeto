@@ -114,28 +114,41 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     end,
     end_game(FstPlayer, SndPlayer, Game).
 
+%Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
+%Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
 game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) -> 
     Game ! {start_game, self()},
     receive
         {abort, FstPlayer} ->
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
+            end_game(FstPlayer, SndPlayer, Game),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
 
         {abort, SndPlayer} -> 
+            end_game(FstPlayer, SndPlayer, Game),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
         %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
         %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
         %Talvez esta indireção (este game aqui) seja inútil e os aborts possam existir diretamente no game da simulação
         after ?GAMETIME -> ok
-    end,
-    end_game(FstPlayer, SndPlayer, Game).
+    end.
 
+%Termina o jogo avisando todos os intervenientes
 end_game(Player1, Player2, Game) ->
     Game ! {end_game, self()},
     Player1 ! {end_game, self()},
     Player2 ! {end_game, self()},
     game_manager ! {end_game, self()}.
+
+% As funções seguintes dizem respeito às funções que ditam o estado dos jogadores
+% A função acceptor abre a Socket de ligação com o utilizador
+% Os diferentes estados são: Main_Menu; User; Ready_User; e Player
+
+acceptor(LSock) ->
+    {ok, Sock} = gen_tcp:accept(LSock),
+    spawn(fun() -> acceptor(LSock) end),
+    main_menu(Sock).
 
 main_menu(Sock) ->
     receive
@@ -164,11 +177,6 @@ main_menu(Sock) ->
         {tcp_closed, _, _} -> ok;
         _ -> gen_tcp:send(Sock, "login:error_unknown_command")
     end.
-
-acceptor(LSock) ->
-    {ok, Sock} = gen_tcp:accept(LSock),
-    spawn(fun() -> acceptor(LSock) end),
-    main_menu(Sock).
 
 user(Sock, Username) ->
     receive
