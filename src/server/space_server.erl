@@ -33,7 +33,7 @@ lobby(Users) ->
     end.  
 
 %Gestor dos jogos
-%RoomMap é um mapa que associa níveis ao jogador que o começou, que é limpo sempre que um jogo de um dado nível começa
+%RoomMap é um mapa que associa níveis ao jogador que o começou e ao jogo, que é limpo sempre que um jogo de um dado nível começa
 %GameRooms contém todas as salas de jogos em andamento
 %A junção de GameRooms com o Lobby dá todos os jogadores atualmente online
 game_manager(RoomMap, GameRooms) ->
@@ -93,39 +93,42 @@ ready([{FstUsername, FstPlayer}]) ->
 %As simulações são passadas para cada um dos jogadores
 sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     %Avisar os utilizadores para entrarem no jogo
-    {Player1Sim, Player2Sim, Game} = simulation:start_game(),
+    {Player1Sim, Player2Sim} = simulation:start_game(self()),
     FstPlayer ! {start_game, Player1Sim, self()},
     SndPlayer ! {start_game, Player2Sim, self()},
     receive
         {ok, FstPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
-                after 6000 -> ok
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
+                after 60000 -> ok
             end;
         {ok, SndPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
-                after 6000 -> ok
+                {ok, FstPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
+                after 60000 -> ok
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
-        {abort, FstPlayer} -> ok
-        after 6000 -> ok
+        {abort, FstPlayer} -> ok;
+        {abort, SndPlayer} -> ok
+        after 60000 -> ok
     end,
-    end_game(FstPlayer, SndPlayer, Game).
+    end_game(FstPlayer, SndPlayer).
+
+abort_game(Game, Simulation) ->
+    Game ! {abort, Simulation}.
 
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
-game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) -> 
-    Game ! {start_game, self()},
+game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
     receive
         {abort, FstPlayer} ->
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
-            end_game(FstPlayer, SndPlayer, Game),
+            end_game(FstPlayer, SndPlayer),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
 
         {abort, SndPlayer} -> 
-            end_game(FstPlayer, SndPlayer, Game),
+            end_game(FstPlayer, SndPlayer),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
         %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
         %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
@@ -134,8 +137,7 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) ->
     end.
 
 %Termina o jogo avisando todos os intervenientes
-end_game(Player1, Player2, Game) ->
-    Game ! {end_game, self()},
+end_game(Player1, Player2) ->
     Player1 ! {end_game, self()},
     Player2 ! {end_game, self()},
     game_manager ! {end_game, self()}.
@@ -151,11 +153,11 @@ acceptor(LSock) ->
 
 main_menu(Sock) ->
     receive
-        {tcp, _, "create:" ++ Data} ->
+        {tcp, _, "register:" ++ Data} ->
             [Username, Password] = re:split(Data, "[:]"),
             case level_manager:create_account(Username, Password) of
-                ok -> gen_tcp:send(Sock, "create:ok");
-                user_exists -> gen_tcp:send(Sock, "create:error_user_exists")
+                ok -> gen_tcp:send(Sock, "register:ok");
+                user_exists -> gen_tcp:send(Sock, "register:error_user_exists")
             end,
             main_menu(Sock);
         {tcp, _, "login:" ++ Data} -> 
@@ -223,15 +225,16 @@ user_ready(Sock, Game, Username) ->
         {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
             gen_tcp:send(Sock, "game:start"),
-            player(Sock, Game, Simulation, Username);
+            spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username) end),
+            player_tosim(Sock, Game, Simulation, Username);
         {tcp, _, Data} ->
             case Data of
                 "logout" -> 
                     unready(Username, Game),
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
-                "close:" ++ Data -> 
-                    case level_manager:close_account(Username, Data) of
+                "close:" ++ Passwd -> 
+                    case level_manager:close_account(Username, Passwd) of
                         ok -> 
                             unready(Username, Game),
                             lobby ! {leave, self()},
@@ -255,11 +258,29 @@ user_ready(Sock, Game, Username) ->
             lobby ! {leave, self()}
     end.
 
-player(Sock, Game, Simulation, Username) -> 
+%Player position: x,y,alpha
+%Inimigo position: x,y,alpha
+%Boxs
+%Pontuação
+%p_p:5
+%e_p:5
+
+player_fromsim(Sock, Game, Simulation, Username) ->
+    receive
+        {carlos} -> 
+            gen_tcp:send(Sock, "todo"),
+            player_fromsim(Sock, Game, Simulation, Username)
+    end.
+
+%rotate
+%speed_up
+%telogo
+
+player_tosim(Sock, Game, Simulation, Username) -> 
     receive
         {end_game, Game} -> user(Sock, Username);
         {tcp, _, Data} -> ok;
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok;
-        _ -> player(Sock, Game, Simulation, Username)
+        _ -> player_tosim(Sock, Game, Simulation, Username)
     end.
