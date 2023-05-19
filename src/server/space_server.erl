@@ -225,7 +225,7 @@ user_ready(Sock, Game, Username) ->
         {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
             gen_tcp:send(Sock, "game:start"),
-            spawn(),
+            spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username) end),
             player_tosim(Sock, Game, Simulation, Username);
         {tcp, _, Data} ->
             case Data of
@@ -265,13 +265,12 @@ user_ready(Sock, Game, Username) ->
 %p_p:5
 %e_p:5
 
-player(Sock, Data) ->
-    gen_tcp:send(Sock, "player:" + Data).
-
 player_fromsim(Sock, Game, Simulation, Username) ->
-    gen_tcp:send(Sock, "todo"),
-    player_fromsim(Sock, Game, Simulation, Username),
-    ok.
+    receive
+        {carlos} -> 
+            gen_tcp:send(Sock, "todo"),
+            player_fromsim(Sock, Game, Simulation, Username)
+    end.
 
 player_tosim(Sock, Game, Simulation, Username) -> 
     receive
