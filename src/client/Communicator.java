@@ -25,7 +25,7 @@ class CommunicatorPos extends Communicator{
             this.gameState.lrw.readLock().lock();
             try {
                 this.gameState.putPos(Float.parseFloat(posArgs[0]), Float.parseFloat(posArgs[1]),
-                        Float.parseFloat(posArgs[2]), Objects.equals(this.enemy, "Enemy"));
+                        Float.parseFloat(posArgs[2]), Objects.equals(this.enemy, "E"));
             } finally {
                 this.gameState.lrw.readLock().unlock();
             }

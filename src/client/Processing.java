@@ -109,7 +109,7 @@ public void setup(){
 
   this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, "");
   this.communicators[0].start();
-  this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, "Enemy");
+  this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, "E");
   this.communicators[1].start();
   this.communicators[2] = new CommunicatorBox(this.connectionManager, this.gameState);
   this.communicators[2].start();
