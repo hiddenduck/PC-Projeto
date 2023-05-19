@@ -97,7 +97,6 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     FstPlayer ! {start_game, Player1Sim, self()},
     SndPlayer ! {start_game, Player2Sim, self()},
     receive
-        %sei lá
         {ok, FstPlayer} -> 
             receive
                 {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
@@ -131,7 +130,7 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) ->
         %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
         %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
         %Talvez esta indireção (este game aqui) seja inútil e os aborts possam existir diretamente no game da simulação
-        after ?GAMETIME -> ok
+        after ?GAMETIME -> todo
     end.
 
 %Termina o jogo avisando todos os intervenientes
