@@ -100,7 +100,7 @@ class CommunicatorGame extends Communicator{
             String point = this.connectionManager.receive("game");
             this.gameState.lrw.readLock().lock();
             try {
-                this.gameState.setGameStatus(point.charAt(0));
+                this.gameState.setGameStatus(point);
             } finally {
                 this.gameState.lrw.readLock().unlock();
             }

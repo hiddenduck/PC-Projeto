@@ -190,7 +190,7 @@ private void waitingMenu(){
     text("Not Ready", width*0.5f,  height*0.42f);
   }
 
-  if(this.gameState.gameStatus == 's') {
+  if(Objects.equals(this.gameState.gameStatus, "s")) {
     this.menuImage = loadImage("images/space3.jpg");
     this.menu = "game";
   }
@@ -209,10 +209,11 @@ private void game() throws IOException{
   } finally {
     this.gameState.lrw.writeLock().unlock();
   }
-
-  if(gameDraw.gameStatus=='w')
-    text("Victory", width*0.5f, height*0.5f);
-  else if(gameDraw.gameStatus=='l'){
+  String[] statusArg = gameDraw.gameStatus.split(":", 2);
+  if(Objects.equals(statusArg[0], "w")) {
+    text("Victory", width * 0.5f, height * 0.5f);
+    this.level = Integer.parseInt(statusArg[1]);
+  } else if(Objects.equals(statusArg[0], "l")){
     text("Defeat", width*0.5f, height*0.5f);
   } else {
     fill(46, 123, 238);
