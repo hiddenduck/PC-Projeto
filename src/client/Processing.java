@@ -219,20 +219,34 @@ private void game() throws IOException{
     this.gameState.lrw.writeLock().unlock();
   }
 
-  fill(46,123,238);
-  ellipse(gameDraw.posX, gameDraw.posY, 1, 1);
-  fill(238,46,59);
-  ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 1, 1);
+  if(gameDraw.gameStatus=='w')
+    text("Victory", width*0.5f, height*0.5f);
+  else if(gameDraw.gameStatus=='l'){
+    text("Defeat", width*0.5f, height*0.5f);
+  } else {
+    fill(46, 123, 238);
+    ellipse(gameDraw.posX, gameDraw.posY, 1, 1);
+    pushMatrix();
+    rotate(gameDraw.alfa);
+    line(gameDraw.posX, gameDraw.posY, gameDraw.posX + 0.5f, gameDraw.posY + 0.5f);
+    popMatrix();
+    fill(238, 46, 59);
+    ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 1, 1);
+    pushMatrix();
+    rotate(gameDraw.enemyAlfa);
+    line(gameDraw.enemyPosX, gameDraw.enemyPosY, gameDraw.enemyPosX + 0.5f, gameDraw.enemyPosY + 0.5f);
+    popMatrix();
 
-  Triple triple;
-  for(Triple box: gameDraw.boxes){
-    triple = this.colorMap.get(box.chars[0]);
-    fill(triple.floats[0], triple.floats[1], triple.floats[2]);
-    rect(box.floats[0], box.floats[1], 1, 1);
+    Triple triple;
+    for (Triple box : gameDraw.boxes) {
+      triple = this.colorMap.get(box.chars[0]);
+      fill(triple.floats[0], triple.floats[1], triple.floats[2]);
+      rect(box.floats[0], box.floats[1], 1, 1);
+    }
+
+    if (this.keysPressed[0] || this.keysPressed[1] || this.keysPressed[2]) // if something fishy, the bug is probably here
+      this.connectionManager.send("move", Arrays.toString(this.keysPressed));
   }
-
-  if(this.keysPressed[0]|| this.keysPressed[1] ||this.keysPressed[2]) // if something fishy, the bug is probably here
-    this.connectionManager.send("move", Arrays.toString(this.keysPressed));
 }
 
 public void draw(){
@@ -253,7 +267,7 @@ public void draw(){
   }
 
   public void mousePressed(){
-    if(!isInGame){
+    if(!this.isInGame){
       if(Objects.equals(this.menu, "startMenu")){
         this.user.reset();
         this.password.reset();
