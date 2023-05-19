@@ -11,6 +11,7 @@ start_game(Game) ->
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> game(Game, {{1, 0}, {-1, 0}}, {Player1_sim, Player2_sim}, [], {0, 0}) end),
     spawn(fun() -> ticker(GameSim) end),
+    spawn(fun() -> timer(GameSim) end),
     {Player1_sim, Player2_sim}.
 
 change_speed(PlayerSim) ->
@@ -36,6 +37,10 @@ new_pos({X, Y}, Sim) ->
         {{Vx, Vy}, Alfa, _} ->
             {X + Vx, Y + Vy, Alfa}
     end.
+
+timer(GameSim) ->
+    sleep(60000),
+    GameSim ! timeout.
 
 %Game controls the general game state such as 
 %player position Powerups and Points
