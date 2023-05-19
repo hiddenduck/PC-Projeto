@@ -99,12 +99,12 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     receive
         {ok, FstPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
+                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
                 after 60000 -> ok
             end;
         {ok, SndPlayer} -> 
             receive
-                {ok, FstPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
+                {ok, FstPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
                 after 60000 -> ok
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
