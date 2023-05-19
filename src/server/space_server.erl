@@ -285,18 +285,15 @@ player_fromsim(Sock, Game, Simulation, Username) ->
 player_tosim(Sock, Game, Simulation, Username) -> 
     receive
         {tcp, _, Data} -> 
-            case Data of
-                "move:" ++ List ->
-                    [Fst, Snd, Trd] = re:split(List, "[:]"),
-                    if Fst =:= "t", Trd =:= "f" -> 
-                            simulation:change_angle(Simulation)
-                    end,
-                    if Snd =:= "t" -> 
-                            simulation:change_speed(Simulation)
-                    end,
-                    if Fst =:= "f", Trd =:= "t" -> 
-                            simulation:change_angle(Simulation)
-                    end
+            ["move", Fst, Snd, Trd] = re:split(Data, "[:]"),
+            if Fst =:= "t", Trd =:= "f" -> 
+                simulation:change_angle(Simulation)
+            end,
+            if Snd =:= "t" -> 
+                simulation:change_speed(Simulation)
+            end,
+            if Fst =:= "f", Trd =:= "t" -> 
+                simulation:change_angle(Simulation)
             end;
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok;
