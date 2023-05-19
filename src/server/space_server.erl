@@ -257,6 +257,16 @@ user_ready(Sock, Game, Username) ->
             lobby ! {leave, self()}
     end.
 
+%Player position: x,y,alpha
+%Inimigo position: x,y,alpha
+%Boxs
+%Pontuação
+%p_p:5
+%e_p:5
+
+player(Sock, Data) ->
+    gen_tcp:send(Sock, "player:" + Data).
+
 player_fromsim(Sock, Game, Simulation, Username) ->
     gen_tcp:send(Sock, "todo"),
     player_fromsim(Sock, Game, Simulation, Username),
