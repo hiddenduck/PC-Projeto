@@ -1,5 +1,5 @@
 -module(space_server).
--export([start/1, stop/0]). % server:start(1234)
+-export([start/1, stop/0, abort_game/2, positions/4]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
 -define(GAMETIME, 120000).
@@ -100,46 +100,46 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
         {ok, FstPlayer} -> 
             receive
                 {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
-                after 60000 -> ok
+                after 60000 -> end_game(FstPlayer, -1, SndPlayer, -1)
             end;
         {ok, SndPlayer} -> 
             receive
                 {ok, FstPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}])
-                after 60000 -> ok
+                after 60000 -> end_game(SndPlayer, -1, FstPlayer, -1)
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
-        {abort, FstPlayer} -> ok;
-        {abort, SndPlayer} -> ok
-        after 60000 -> ok
-    end,
-    end_game(FstPlayer, SndPlayer).
+        {abort, FstPlayer} -> end_game(SndPlayer, -1, FstPlayer, -1);
+        {abort, SndPlayer } -> end_game(FstPlayer, -1, SndPlayer, -1)
+        after 60000 -> end_game(SndPlayer, -1, FstPlayer, -1)
+    end.
 
-abort_game(Game, Simulation) ->
-    Game ! {abort, Simulation}.
+abort_game(Game, Winner) ->
+    Game ! {abort, Winner}.
 
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
 game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
     receive
-        {abort, FstPlayer} ->
+        {abort, Player} ->
+            case Player of
+                FstPlayer -> 
+                    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername),
+                    end_game(SndPlayer,WinnerLevel,FstPlayer,LoserLevel);
+                SndPlayer ->
+                    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername),
+                    end_game(FstPlayer, WinnerLevel, SndPlayer, LoserLevel)
+            end
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
-            end_game(FstPlayer, SndPlayer),
-            {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
-
-        {abort, SndPlayer} -> 
-            end_game(FstPlayer, SndPlayer),
-            {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
         %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
         %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
         %Talvez esta indireção (este game aqui) seja inútil e os aborts possam existir diretamente no game da simulação
-        after ?GAMETIME -> todo
     end.
 
 %Termina o jogo avisando todos os intervenientes
-end_game(Player1, Player2) ->
-    Player1 ! {end_game, self()},
-    Player2 ! {end_game, self()},
+end_game(Winner,WinnerLevel, Loser, LoserLevel) ->
+    Winner ! {victory, WinnerLevel, self()},
+    Loser ! {defeat, LoserLevel, self()},
     game_manager ! {end_game, self()}.
 
 % As funções seguintes dizem respeito às funções que ditam o estado dos jogadores
@@ -157,7 +157,7 @@ main_menu(Sock) ->
             [Username, Password] = re:split(Data, "[:]"),
             case level_manager:create_account(Username, Password) of
                 ok -> gen_tcp:send(Sock, "register:ok");
-                user_exists -> gen_tcp:send(Sock, "register:error_user_exists")
+                user_exists -> gen_tcp:send(Sock, "register:user_exists")
             end,
             main_menu(Sock);
         {tcp, _, "login:" ++ Data} -> 
@@ -165,18 +165,19 @@ main_menu(Sock) ->
             case level_manager:login(Username, Password) of
                 ok ->
                     lobby ! {enter, "lobby", self()},
-                    gen_tcp:send(Sock, "login:ok"),
+                    {ok, Level} = file_manager:check_level(Username),
+                    gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level)),
                     user(Sock, Username);
                 invalid_password ->
-                    gen_tcp:send(Sock, "login:error_invalid_password"),
+                    gen_tcp:send(Sock, "login:invalid_password"),
                     main_menu(Sock);
                 _ ->
-                    gen_tcp:send(Sock, "login:error_unknown_username"),
+                    gen_tcp:send(Sock, "login:unknown_username"),
                     main_menu(Sock)
             end;
         {tcp_error, _, _} -> ok;
         {tcp_closed, _, _} -> ok;
-        _ -> gen_tcp:send(Sock, "login:error_unknown_command")
+        _ -> gen_tcp:send(Sock, "login:unknown_command")
     end.
 
 user(Sock, Username) ->
@@ -198,11 +199,11 @@ user(Sock, Username) ->
                         wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user(Sock, Username);
                         invalid -> gen_tcp:send(Sock, "close:error_invalid"), user(Sock, Username)
                     end;
-                "game:ready" ->
+                "ready:true" ->
                     {ok, Level} = level_manager:check_level(Username),
                     game_manager ! {ready, Level, Username, self()},
                     receive 
-                        {ok, Game, game_manager} -> gen_tcp:send(Sock, "game:ready"), user_ready(Sock, Game, Username)
+                        {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok"), user_ready(Sock, Game, Username)
                         %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
                     end;
                 _ -> 
@@ -224,9 +225,10 @@ user_ready(Sock, Game, Username) ->
     receive
         {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
-            gen_tcp:send(Sock, "game:start"),
-            spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username) end),
-            player_tosim(Sock, Game, Simulation, Username);
+            %game:start
+            gen_tcp:send(Sock, "game:s"),
+            Reader = spawn(fun() -> player_tosim(Sock, Game, Simulation, Username, self()) end),
+            player_fromsim(Sock, Game, Simulation, Username, Reader);
         {tcp, _, Data} ->
             case Data of
                 "logout" -> 
@@ -243,9 +245,9 @@ user_ready(Sock, Game, Username) ->
                         wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user_ready(Sock, Game, Username);
                         invalid -> gen_tcp:send(Sock, "close:error_invalid"), user_ready(Sock, Game, Username)
                     end;
-                "game:unready" -> 
+                "ready:false" -> 
                     unready(Username, Game),
-                    gen_tcp:send(Sock, "game:unready"), user(Sock,  Username);
+                    gen_tcp:send(Sock, "ready:ok"), user(Sock,  Username);
                 "msg:" ++ Data -> 
                     lobby ! {line, Data},
                     user_ready(Sock, Game, Username)
@@ -265,22 +267,58 @@ user_ready(Sock, Game, Username) ->
 %p_p:5
 %e_p:5
 
-player_fromsim(Sock, Game, Simulation, Username) ->
+positions(Player, Enemy, To, Game) ->
+    To ! {positions, Player, Enemy, Game}.
+
+player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     receive
-        {carlos} -> 
-            gen_tcp:send(Sock, "todo"),
-            player_fromsim(Sock, Game, Simulation, Username)
+        {victory, Level, Game} -> 
+            gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level)),
+            user(Sock, Username);
+        {defeat, Level, Game} -> 
+            gen_tcp:send(Sock, "game:l"),
+            user(Sock, Username)
+        after 0 ->
+            receive
+                {positions, Player, Enemy, Game} -> 
+                    %pos:x:y:alpha
+                    %posE:x:y:alpha
+                    gen_tcp:send(Sock, "game:"),
+                    player_fromsim(Sock, Game, Simulation, Username, ToSim);
+                {boxes, Add, Remove, Game} ->
+                    %box:+:x:y:color
+                    %box:-:x:y:color
+                    Str = 
+                    gen_tcp:send(Sock, "box:"),
+                    player_fromsim(Sock, Game, Simulation, Username, ToSim);
+                {score, Player, Enemy, Game} ->
+                    %box:+:x:y:color
+                    %box:-:x:y:color
+                    gen_tcp:send(Sock, "box:"),
+                    player_fromsim(Sock, Game, Simulation, Username, ToSim);
+            end
     end.
 
 %rotate
 %speed_up
 %telogo
 
-player_tosim(Sock, Game, Simulation, Username) -> 
+player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
     receive
-        {end_game, Game} -> user(Sock, Username);
-        {tcp, _, Data} -> ok;
+        {abort, FromSim} ->
+            ok;
+        {tcp, _, Data} -> 
+            ["move", Left, Front, Right] = re:split(Data, "[:]"),
+            if Left =:= "t", Right =:= "f" -> 
+                simulation:change_angle(Simulation,1)
+            end,
+            if Front =:= "t" -> 
+                simulation:change_speed(Simulation)
+            end,
+            if Left =:= "f", Right =:= "t" -> 
+                simulation:change_angle(Simulation,-1)
+            end;
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok;
-        _ -> player_tosim(Sock, Game, Simulation, Username)
+        _ -> player_tosim(Sock, Game, Simulation, Username, FromSim)
     end.
