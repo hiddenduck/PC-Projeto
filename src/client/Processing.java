@@ -94,10 +94,6 @@ public class Processing extends PApplet{
 
   private Map<Character, Triple> colorMap;
 
-  //private Thread accountMessenger;
-
-  //private String accountMessage;
-
   private boolean[] keysPressed;
 public void setup(){
   frameRate(30);
@@ -111,9 +107,9 @@ public void setup(){
   this.gameState = new GameState();
   this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
 
-  this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, false);
+  this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, "");
   this.communicators[0].start();
-  this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, true);
+  this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, "Enemy");
   this.communicators[1].start();
   this.communicators[2] = new CommunicatorBox(this.connectionManager, this.gameState);
   this.communicators[2].start();
@@ -127,16 +123,6 @@ public void setup(){
   this.colorMap.put('r', new Triple(255,0,0));
   this.colorMap.put('g', new Triple(34,139,34));
   this.colorMap.put('b', new Triple(0,191,255));
-  /*
-  this.accountMessenger = new Thread(() -> {
-    try {
-      this.accountMessage = this.connectionManager.receive("account");
-    }catch (Exception e){
-      e.printStackTrace();
-    }
-  });
-  this.accountMessenger.start();
-  */
 }
 
 private void startMenu(){
@@ -203,6 +189,11 @@ private void waitingMenu(){
     fill(220,20,60);
     text("Not Ready", width*0.5f,  height*0.42f);
   }
+
+  if(this.gameState.gameStatus == 's') {
+    this.menuImage = loadImage("images/space3.jpg");
+    this.menu = "game";
+  }
   strokeWeight(0);
 }
 
@@ -228,7 +219,7 @@ private void game() throws IOException{
     ellipse(gameDraw.posX, gameDraw.posY, 1, 1);
     pushMatrix();
     rotate(gameDraw.alfa);
-    line(gameDraw.posX, gameDraw.posY, gameDraw.posX + 0.5f, gameDraw.posY + 0.5f);
+    line(gameDraw.posX, gameDraw.posY, gameDraw.posX, gameDraw.posY + 0.5f);
     popMatrix();
     fill(238, 46, 59);
     ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 1, 1);
@@ -244,8 +235,9 @@ private void game() throws IOException{
       rect(box.floats[0], box.floats[1], 1, 1);
     }
 
-    if (this.keysPressed[0] || this.keysPressed[1] || this.keysPressed[2]) // if something fishy, the bug is probably here
-      this.connectionManager.send("move", Arrays.toString(this.keysPressed));
+    if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) { // if something fishy, the bug is probably here
+      this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
+    }
   }
 }
 
@@ -316,7 +308,9 @@ public void draw(){
             } catch (IOException|InterruptedException e){
               e.printStackTrace();
             }
-            if(Objects.equals(this.message, "ok")) {
+            String[] messageArgs = this.message.split(":", 2);
+            if(Objects.equals(messageArgs[0], "ok")) {
+              this.level = Integer.parseInt(messageArgs[1]);
               this.menuImage = loadImage("images/space2.jpg");
               this.menu = "waitingMenu";
             }
@@ -324,9 +318,17 @@ public void draw(){
         }
       } else if(Objects.equals(this.menu, "waitingMenu")){
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+          try{
+            this.connectionManager.send("ready", Boolean.toString(!this.isReady));
+          } catch (IOException e){
+            e.printStackTrace();
+          }
+          try{
+            this.message = this.connectionManager.receive("ready");
+          } catch (IOException|InterruptedException e){
+            e.printStackTrace();
+          }
           this.isReady = !this.isReady;
-          this.menuImage = loadImage("images/space3.jpg");
-          this.menu = "game";
         }
       }
     }
@@ -357,7 +359,7 @@ public void draw(){
   }
 
   public static void main(String[] args) {
-    if(args.length < 2)
+  if(args.length < 2)
         System.exit(1);
 
     String host = args[0];

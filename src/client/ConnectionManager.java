@@ -21,6 +21,9 @@ public class ConnectionManager implements AutoCloseable{
         this.typeMap.put("box", new LinkedList<>());
         this.typeMap.put("point", new LinkedList<>());
         this.typeMap.put("game", new LinkedList<>());
+        this.typeMap.put("receive", new LinkedList<>());
+        this.typeMap.put("register", new LinkedList<>());
+        this.typeMap.put("login", new LinkedList<>());
     }
 
     private ConnectionManager(BufferedReader input, PrintWriter output, Socket socket){

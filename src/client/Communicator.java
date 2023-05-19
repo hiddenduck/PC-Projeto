@@ -11,21 +11,21 @@ public class Communicator extends Thread{
 }
 
 class CommunicatorPos extends Communicator{
-    private final boolean enemy;
+    private final String enemy;
 
-    public CommunicatorPos(ConnectionManager connectionManager, GameState gameState, boolean enemy){
+    public CommunicatorPos(ConnectionManager connectionManager, GameState gameState, String enemy){
         super(connectionManager, gameState);
         this.enemy = enemy;
     }
 
     public void run(){
         try {
-            String pos = this.connectionManager.receive("pos");
+            String pos = this.connectionManager.receive("pos"+this.enemy);
             String[] posArgs = pos.split(":", 3);
             this.gameState.lrw.readLock().lock();
             try {
                 this.gameState.putPos(Float.parseFloat(posArgs[0]), Float.parseFloat(posArgs[1]),
-                        Float.parseFloat(posArgs[2]), this.enemy);
+                        Float.parseFloat(posArgs[2]), Objects.equals(this.enemy, "Enemy"));
             } finally {
                 this.gameState.lrw.readLock().unlock();
             }
