@@ -272,6 +272,10 @@ player_fromsim(Sock, Game, Simulation, Username) ->
             player_fromsim(Sock, Game, Simulation, Username)
     end.
 
+%rotate
+%speed_up
+%telogo
+
 player_tosim(Sock, Game, Simulation, Username) -> 
     receive
         {end_game, Game} -> user(Sock, Username);
