@@ -114,8 +114,8 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     end,
     end_game(FstPlayer, SndPlayer).
 
-abort_game(Game, Simulation) ->
-    Game ! {abort, Simulation}.
+abort_game(Game, Winner) ->
+    Game ! {abort, Winner}.
 
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
@@ -126,7 +126,6 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) ->
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
             end_game(FstPlayer, SndPlayer),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
-
         {abort, SndPlayer} -> 
             end_game(FstPlayer, SndPlayer),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
