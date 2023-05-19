@@ -33,7 +33,7 @@ lobby(Users) ->
     end.  
 
 %Gestor dos jogos
-%RoomMap é um mapa que associa níveis ao jogador que o começou, que é limpo sempre que um jogo de um dado nível começa
+%RoomMap é um mapa que associa níveis ao jogador que o começou e ao jogo, que é limpo sempre que um jogo de um dado nível começa
 %GameRooms contém todas as salas de jogos em andamento
 %A junção de GameRooms com o Lobby dá todos os jogadores atualmente online
 game_manager(RoomMap, GameRooms) ->
@@ -100,16 +100,17 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
         {ok, FstPlayer} -> 
             receive
                 {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
-                after 6000 -> ok
+                after 60000 -> ok
             end;
         {ok, SndPlayer} -> 
             receive
-                {ok, SndPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
-                after 6000 -> ok
+                {ok, FstPlayer} -> game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game)
+                after 60000 -> ok
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
-        {abort, FstPlayer} -> ok
-        after 6000 -> ok
+        {abort, FstPlayer} -> ok;
+        {abort, SndPlayer} -> ok
+        after 60000 -> ok
     end,
     end_game(FstPlayer, SndPlayer, Game).
 
@@ -151,11 +152,11 @@ acceptor(LSock) ->
 
 main_menu(Sock) ->
     receive
-        {tcp, _, "create:" ++ Data} ->
+        {tcp, _, "register:" ++ Data} ->
             [Username, Password] = re:split(Data, "[:]"),
             case level_manager:create_account(Username, Password) of
-                ok -> gen_tcp:send(Sock, "create:ok");
-                user_exists -> gen_tcp:send(Sock, "create:error_user_exists")
+                ok -> gen_tcp:send(Sock, "register:ok");
+                user_exists -> gen_tcp:send(Sock, "register:error_user_exists")
             end,
             main_menu(Sock);
         {tcp, _, "login:" ++ Data} -> 
@@ -223,15 +224,16 @@ user_ready(Sock, Game, Username) ->
         {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
             gen_tcp:send(Sock, "game:start"),
-            player(Sock, Game, Simulation, Username);
+            spawn(),
+            player_tosim(Sock, Game, Simulation, Username);
         {tcp, _, Data} ->
             case Data of
                 "logout" -> 
                     unready(Username, Game),
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
-                "close:" ++ Data -> 
-                    case level_manager:close_account(Username, Data) of
+                "close:" ++ Passwd -> 
+                    case level_manager:close_account(Username, Passwd) of
                         ok -> 
                             unready(Username, Game),
                             lobby ! {leave, self()},
@@ -255,11 +257,16 @@ user_ready(Sock, Game, Username) ->
             lobby ! {leave, self()}
     end.
 
-player(Sock, Game, Simulation, Username) -> 
+player_fromsim(Sock, Game, Simulation, Username) ->
+    gen_tcp:send(Sock, "todo"),
+    player_fromsim(Sock, Game, Simulation, Username),
+    ok.
+
+player_tosim(Sock, Game, Simulation, Username) -> 
     receive
         {end_game, Game} -> user(Sock, Username);
         {tcp, _, Data} -> ok;
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok;
-        _ -> player(Sock, Game, Simulation, Username)
+        _ -> player_tosim(Sock, Game, Simulation, Username)
     end.
