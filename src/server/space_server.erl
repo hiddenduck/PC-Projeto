@@ -121,18 +121,20 @@ abort_game(Game, Winner) ->
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
 game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
     receive
-        {abort, FstPlayer} ->
+        {abort, Player} ->
+            case Player of
+                FstPlayer -> 
+                    end_game(FstPlayer, SndPlayer),
+                    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
+                SndPlayer ->
+                    end_game(FstPlayer, SndPlayer),
+                    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
+            end
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
-            end_game(FstPlayer, SndPlayer),
-            {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
-        {abort, SndPlayer} -> 
-            end_game(FstPlayer, SndPlayer),
-            {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
         %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
         %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
         %Talvez esta indireção (este game aqui) seja inútil e os aborts possam existir diretamente no game da simulação
-        after ?GAMETIME -> todo
     end.
 
 %Termina o jogo avisando todos os intervenientes
