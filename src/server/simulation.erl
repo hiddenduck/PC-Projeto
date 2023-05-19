@@ -1,6 +1,6 @@
 -module(simulation).
 
--export([start_game/1, change_speed/1, change_angle/1]).
+-export([start_game/1, change_speed/1, change_angle/2]).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
@@ -11,13 +11,14 @@ start_game(Game) ->
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> game(Game, {{1, 0}, {-1, 0}}, {Player1_sim, Player2_sim}, [], {0, 0}) end),
     spawn(fun() -> ticker(GameSim) end),
+    spawn(fun() -> timer(GameSim) end),
     {Player1_sim, Player2_sim}.
 
 change_speed(PlayerSim) ->
     PlayerSim ! speed_up.
 
-change_angle(PlayerSim) ->
-    PlayerSim ! change_angle.
+change_angle(PlayerSim, Dir) ->
+    PlayerSim ! {change_angle, Dir}.
 
 %sleep function yoinked from stor
 %may be better function in erlang
@@ -36,6 +37,10 @@ new_pos({X, Y}, Sim) ->
         {{Vx, Vy}, Alfa, _} ->
             {X + Vx, Y + Vy, Alfa}
     end.
+
+timer(GameSim) ->
+    sleep(60000),
+    GameSim ! timeout.
 
 %Game controls the general game state such as 
 %player position Powerups and Points
@@ -119,8 +124,8 @@ simulator(PlayerState, Flag) ->
             NewPlayerState =
                 {{Vx + Accel * math:cos(Alfa), Vy + Accel * math:sin(Alfa)}, Alfa, {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 1);
-        change_direction when Flag band 2 == 0 ->
-            NewPlayerState = {{Vx, Vy}, Alfa + AngVel, {Accel, AngVel}},
+        {change_direction, Dir} when Flag band 2 == 0 ->
+            NewPlayerState = {{Vx, Vy}, Alfa + Dir * AngVel, {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 2)
     after
         0 ->
