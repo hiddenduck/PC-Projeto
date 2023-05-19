@@ -93,7 +93,7 @@ ready([{FstUsername, FstPlayer}]) ->
 %As simulações são passadas para cada um dos jogadores
 sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
     %Avisar os utilizadores para entrarem no jogo
-    {Player1Sim, Player2Sim, Game} = simulation:start_game(),
+    {Player1Sim, Player2Sim} = simulation:start_game(self()),
     FstPlayer ! {start_game, Player1Sim, self()},
     SndPlayer ! {start_game, Player2Sim, self()},
     receive
@@ -112,21 +112,23 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
         {abort, SndPlayer} -> ok
         after 60000 -> ok
     end,
-    end_game(FstPlayer, SndPlayer, Game).
+    end_game(FstPlayer, SndPlayer).
+
+abort_game(Game, Simulation) ->
+    Game ! {abort, Simulation}.
 
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
-game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) -> 
-    Game ! {start_game, self()},
+game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
     receive
         {abort, FstPlayer} ->
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
-            end_game(FstPlayer, SndPlayer, Game),
+            end_game(FstPlayer, SndPlayer),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername);
 
         {abort, SndPlayer} -> 
-            end_game(FstPlayer, SndPlayer, Game),
+            end_game(FstPlayer, SndPlayer),
             {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername)
         %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
         %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
@@ -135,8 +137,7 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}], Game) ->
     end.
 
 %Termina o jogo avisando todos os intervenientes
-end_game(Player1, Player2, Game) ->
-    Game ! {end_game, self()},
+end_game(Player1, Player2) ->
     Player1 ! {end_game, self()},
     Player2 ! {end_game, self()},
     game_manager ! {end_game, self()}.
