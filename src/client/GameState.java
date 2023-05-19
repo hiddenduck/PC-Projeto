@@ -31,7 +31,7 @@ public class GameState {
 
     public int point, enemyPoint;
 
-    public char gameStatus;
+    public String gameStatus;
 
     public Set<Triple> boxes;
 
@@ -40,7 +40,7 @@ public class GameState {
     }
 
     public GameState(float posX, float posY, float enemyPosX, float enemyPosY, float alfa, float enemyAlfa,
-                     int point, int enemyPoint, char gameStatus){
+                     int point, int enemyPoint, String gameStatus){
         this.posX = posX;
         this.posY = posY;
         this.enemyPosX = enemyPosX;
@@ -78,8 +78,8 @@ public class GameState {
         this.boxes.remove(oldBox);
     }
 
-    public void setGameStatus(char c){
-        this.gameStatus = c;
+    public void setGameStatus(String s){
+        this.gameStatus = s;
     }
 
     public GameState copy(){
