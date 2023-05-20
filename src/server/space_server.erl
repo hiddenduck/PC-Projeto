@@ -288,14 +288,17 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
                     %box:-:x:y:color
-                    Str = 
-                    gen_tcp:send(Sock, "box:"),
+                    %Add e Remove são listas com listas dos elementos 
+                    %[[x1,y1,color1], [x2,y2,color2]]
+                    StrAddList = [string:join(["+:" | A], ":") || A <- Add],
+                    StrRemoveList = [string:join(["-:" | R], ":") || R <- Remove],
+                    gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ string:join(StrRemoveList, ":")),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {score, Player, Enemy, Game} ->
                     %box:+:x:y:color
                     %box:-:x:y:color
                     gen_tcp:send(Sock, "box:"),
-                    player_fromsim(Sock, Game, Simulation, Username, ToSim);
+                    player_fromsim(Sock, Game, Simulation, Username, ToSim)
             end
     end.
 
