@@ -1,5 +1,5 @@
 -module(space_server).
--export([start/1, stop/0, abort_game/2, positions/4]). % server:start(1234)
+-export([start/1, stop/0, abort_game/2, positions/4, boxes/4, score/4]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
 -define(GAMETIME, 120000).
@@ -53,20 +53,20 @@ game_manager(RoomMap, GameRooms) ->
                 {ok, {User, _}} ->
                     User ! {error_already_ready, game_manager},
                     game_manager(RoomMap, GameRooms);
-                {ok, {_, Game}} ->
+                {ok, {_, Controller}} ->
                     %TODO simplificar o game_manager para não perder tempo em burocracias
                     %juntar-se ao jogo
                     %Não queremos que o game manager lide com burocracia lenta
                     %Game = spawn(fun() -> sync_up({Other, Othername}, {User, Username}) end),
-                    Game ! {start, Username, User, game_manager},
-                    User ! {ok, Game, game_manager},
+                    Controller ! {start, Username, User, game_manager},
+                    User ! {ok, Controller, game_manager},
                     New_Map = maps:remove(Level, RoomMap),
-                    game_manager(New_Map, [Game | GameRooms]);
+                    game_manager(New_Map, [Controller | GameRooms]);
                 _ ->
                     %criar uma espera
-                    Game = spawn(fun()-> ready([{User, Username}]) end),
-                    User ! {ok, Game, game_manager},
-                    game_manager(RoomMap#{Level => {User, Game}}, GameRooms)
+                    Controller = spawn(fun()-> ready([{User, Username}]) end),
+                    User ! {ok, Controller, game_manager},
+                    game_manager(RoomMap#{Level => {User, Controller}}, GameRooms)
             end;
         {end_game, Game} ->
             game_manager(RoomMap, GameRooms -- [Game])
@@ -116,10 +116,43 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
 abort_game(Game, Winner) ->
     Game ! {abort, Winner}.
 
+%Player position: x,y,alpha
+%Inimigo position: x,y,alpha
+%Boxs
+%Pontuação
+%p_p:5
+%e_p:5
+
+%Recebe as posições da simulação em duas listas
+%[[xp,yp,ap],[xe,ye,ap]]
+positions(FstPositions, SndPositions, Controller, Game) ->
+    Controller ! {positions, FstPositions, SndPositions, Game}.
+
+%Recebe as posições a adicionar e remover das caixas em listas de listas
+%[[x1,y1,color1],[x2,y2,color2]]
+boxes(Add, Remove, Controller, Game) ->
+    Controller ! {boxes, Add, Remove, Game}.
+
+%Recebe a pontuação de ambos os jogadores
+score(FstPoints, SndPoints, Controller, Game) ->
+    Controller ! {score, FstPoints, SndPoints, Game}.
+
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
 game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) -> 
     receive
+        {positions, FstPositions, SndPositions, _} -> 
+            positions(FstPositions, SndPositions, FstPlayer, self()),
+            positions(SndPositions, FstPositions, SndPlayer, self()),
+            game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
+        {score, FstScore, SndScore, _} -> 
+            score(FstScore, SndScore, FstPlayer, self()),
+            score(SndScore, FstScore, SndPlayer, self()),
+            game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
+        {boxes, Add, Remove, _} -> 
+            boxes(Add, Remove, FstPlayer, self()),
+            boxes(Add, Remove, SndPlayer, self()),
+            game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
         {abort, Player} ->
             case Player of
                 FstPlayer -> 
@@ -259,27 +292,6 @@ user_ready(Sock, Game, Username) ->
             unready(Username, Game),
             lobby ! {leave, self()}
     end.
-
-%Player position: x,y,alpha
-%Inimigo position: x,y,alpha
-%Boxs
-%Pontuação
-%p_p:5
-%e_p:5
-
-%Recebe as posições da simulação em duas listas
-%[[xp,yp,ap],[xe,ye,ap]]
-positions(Player, Enemy, To, Game) ->
-    To ! {positions, Player, Enemy, Game}.
-
-%Recebe as posições a adicionar e remover das caixas em listas de listas
-%[[x1,y1,color1],[x2,y2,color2]]
-boxes(Add, Remove, To, Game) ->
-    To ! {boxes, Add, Remove, Game}.
-
-%Recebe a pontuação de ambos os jogadores
-score(Player, Enemy, To, Game) ->
-    To ! {score, Player, Enemy, Game}.
 
 player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     receive
