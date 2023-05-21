@@ -63,7 +63,7 @@ public class ConnectionManager implements AutoCloseable{
         Queue<String> typeQueue = this.typeMap.get(type);
         synchronized (typeQueue) {
             while (typeQueue.isEmpty())
-                wait();
+                typeQueue.wait();
         }
         return typeQueue.remove();
     }

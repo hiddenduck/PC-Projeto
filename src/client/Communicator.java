@@ -62,9 +62,6 @@ class CommunicatorBox extends Communicator{
 }
 
 class CommunicatorPoint extends Communicator{
-    private ConnectionManager connectionManager;
-
-    private GameState gameState;
 
     public CommunicatorPoint(ConnectionManager connectionManager, GameState gameState){
         super(connectionManager, gameState);
@@ -87,10 +84,6 @@ class CommunicatorPoint extends Communicator{
 }
 
 class CommunicatorGame extends Communicator{
-    private ConnectionManager connectionManager;
-
-    private GameState gameState;
-
     public CommunicatorGame(ConnectionManager connectionManager, GameState gameState){
         super(connectionManager, gameState);
     }
