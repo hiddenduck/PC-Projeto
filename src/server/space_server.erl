@@ -267,8 +267,19 @@ user_ready(Sock, Game, Username) ->
 %p_p:5
 %e_p:5
 
+%Recebe as posições da simulação em duas listas
+%[[xp,yp,ap],[xe,ye,ap]]
 positions(Player, Enemy, To, Game) ->
     To ! {positions, Player, Enemy, Game}.
+
+%Recebe as posições a adicionar e remover das caixas em listas de listas
+%[[x1,y1,color1],[x2,y2,color2]]
+boxes(Add, Remove, To, Game) ->
+    To ! {boxes, Add, Remove, Game}.
+
+%Recebe a pontuação de ambos os jogadores
+score(Player, Enemy, To, Game) ->
+    To ! {score, Player, Enemy, Game}.
 
 player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     receive
@@ -283,21 +294,22 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                 {positions, Player, Enemy, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
-                    gen_tcp:send(Sock, "game:"),
+                    gen_tcp:send(Sock, "game:" ++ string:join(list:map(fun(i) -> integer_to_list(i) end, Player), ":") ++ 
+                                ":posE:" ++ string:join(list:map(fun(i) -> integer_to_list(i) end, Enemy), ":")),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
                     %box:-:x:y:color
                     %Add e Remove são listas com listas dos elementos 
                     %[[x1,y1,color1], [x2,y2,color2]]
-                    StrAddList = [string:join(["+:" | A], ":") || A <- Add],
-                    StrRemoveList = [string:join(["-:" | R], ":") || R <- Remove],
-                    gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ string:join(StrRemoveList, ":")),
+                    StrAddList = [string:join(["+" | A], ":") || A <- Add],
+                    StrRemoveList = [string:join(["-" | R], ":") || R <- Remove],
+                    gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ ":" ++ string:join(StrRemoveList, ":")),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {score, Player, Enemy, Game} ->
                     %box:+:x:y:color
                     %box:-:x:y:color
-                    gen_tcp:send(Sock, "box:"),
+                    gen_tcp:send(Sock, "points:" ++ Player ++ ":" ++ Enemy),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim)
             end
     end.
