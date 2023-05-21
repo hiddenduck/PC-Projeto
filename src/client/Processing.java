@@ -193,6 +193,7 @@ private void waitingMenu(){
   if(Objects.equals(this.gameState.gameStatus, "s")) {
     this.menuImage = loadImage("images/space3.jpg");
     this.menu = "game";
+    this.isInGame = true;
   }
   strokeWeight(0);
 }
@@ -212,9 +213,11 @@ private void game() throws IOException{
   String[] statusArg = gameDraw.gameStatus.split(":", 2);
   if(Objects.equals(statusArg[0], "w")) {
     text("Victory", width * 0.5f, height * 0.5f);
+    this.isInGame = false;
     this.level = Integer.parseInt(statusArg[1]);
   } else if(Objects.equals(statusArg[0], "l")){
     text("Defeat", width*0.5f, height*0.5f);
+    this.isInGame = false;
   } else {
     fill(46, 123, 238);
     ellipse(gameDraw.posX, gameDraw.posY, 1, 1);
@@ -371,7 +374,7 @@ public void draw(){
       ConnectionManager cm = ConnectionManager.start(socket);
 
       String[] processingArgs = {"Processing"};
-      PApplet.runSketch(processingArgs, new Processing(null));
+      PApplet.runSketch(processingArgs, new Processing(cm));
     } catch(Exception e){
       e.printStackTrace();
       System.exit(0);
