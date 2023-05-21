@@ -34,9 +34,9 @@ lobby(Users) ->
 
 %Gestor dos jogos
 %RoomMap é um mapa que associa níveis ao jogador que o começou e ao jogo, que é limpo sempre que um jogo de um dado nível começa
-%GameRooms contém todas as salas de jogos em andamento
-%A junção de GameRooms com o Lobby dá todos os jogadores atualmente online
-game_manager(RoomMap, GameRooms) ->
+%GameControllers contém todas as salas de jogos em andamento
+%A junção de GameControllers com o Lobby dá todos os jogadores atualmente online
+game_manager(RoomMap, GameControllers) ->
     receive
         {unready, Level, User} -> 
             case maps:find(Level, RoomMap) of
@@ -47,12 +47,12 @@ game_manager(RoomMap, GameRooms) ->
                     New_Map = RoomMap,
                     User ! {error_not_ready, game_manager}    
             end,
-            game_manager(New_Map, GameRooms);
+            game_manager(New_Map, GameControllers);
         {ready, Level, Username, User} ->
             case maps:find(Level, RoomMap) of
                 {ok, {User, _}} ->
                     User ! {error_already_ready, game_manager},
-                    game_manager(RoomMap, GameRooms);
+                    game_manager(RoomMap, GameControllers);
                 {ok, {_, Controller}} ->
                     %TODO simplificar o game_manager para não perder tempo em burocracias
                     %juntar-se ao jogo
@@ -61,15 +61,15 @@ game_manager(RoomMap, GameRooms) ->
                     Controller ! {start, Username, User, game_manager},
                     User ! {ok, Controller, game_manager},
                     New_Map = maps:remove(Level, RoomMap),
-                    game_manager(New_Map, [Controller | GameRooms]);
+                    game_manager(New_Map, [Controller | GameControllers]);
                 _ ->
                     %criar uma espera
                     Controller = spawn(fun()-> ready([{User, Username}]) end),
                     User ! {ok, Controller, game_manager},
-                    game_manager(RoomMap#{Level => {User, Controller}}, GameRooms)
+                    game_manager(RoomMap#{Level => {User, Controller}}, GameControllers)
             end;
-        {end_game, Game} ->
-            game_manager(RoomMap, GameRooms -- [Game])
+        {end_game, Controller} ->
+            game_manager(RoomMap, GameControllers -- [Controller])
     end.
 
 %Função de espera que correrá depois da chamada ready de um utilizador
@@ -109,7 +109,7 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
         {abort, FstPlayer} -> end_game(SndPlayer, -1, FstPlayer, -1);
-        {abort, SndPlayer } -> end_game(FstPlayer, -1, SndPlayer, -1)
+        {abort, SndPlayer} -> end_game(FstPlayer, -1, SndPlayer, -1)
         after 60000 -> end_game(SndPlayer, -1, FstPlayer, -1)
     end.
 
