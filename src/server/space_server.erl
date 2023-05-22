@@ -223,21 +223,21 @@ user(Sock, Username) ->
             case Data of
                 "logout" -> 
                     lobby ! {leave, self()},
-                    gen_tcp:send(Sock, "logout:ok");
+                    gen_tcp:send(Sock, "logout:ok\n");
                 "close:" ++ Data -> 
                     case file_manager:close_account(Username, Data) of
                         ok ->
                             lobby ! {leave, self()},
                             gen_tcp:send(Sock, "close:ok");
 
-                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user(Sock, Username);
-                        invalid -> gen_tcp:send(Sock, "close:error_invalid"), user(Sock, Username)
+                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
+                        invalid -> gen_tcp:send(Sock, "close:error_invalid\n"), user(Sock, Username)
                     end;
                 "ready:true" ->
                     {ok, Level} = file_manager:check_level(Username),
                     game_manager ! {ready, Level, Username, self()},
                     receive 
-                        {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok"), user_ready(Sock, Game, Username)
+                        {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok\n"), user_ready(Sock, Game, Username)
                         %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
                     end;
                 _ -> 
@@ -260,7 +260,7 @@ user_ready(Sock, Game, Username) ->
         {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
             %game:start
-            gen_tcp:send(Sock, "game:s"),
+            gen_tcp:send(Sock, "game:s\n"),
             Reader = spawn(fun() -> player_tosim(Sock, Game, Simulation, Username, self()) end),
             player_fromsim(Sock, Game, Simulation, Username, Reader);
         {tcp, _, Data} ->
@@ -268,20 +268,20 @@ user_ready(Sock, Game, Username) ->
                 "logout" -> 
                     unready(Username, Game),
                     lobby ! {leave, self()},
-                    gen_tcp:send(Sock, "logout:ok");
+                    gen_tcp:send(Sock, "logout:ok\n");
                 "close:" ++ Passwd -> 
                     case file_manager:close_account(Username, Passwd) of
                         ok -> 
                             unready(Username, Game),
                             lobby ! {leave, self()},
-                            gen_tcp:send(Sock, "close:ok");
+                            gen_tcp:send(Sock, "close:ok\n");
 
-                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password"), user_ready(Sock, Game, Username);
-                        invalid -> gen_tcp:send(Sock, "close:error_invalid"), user_ready(Sock, Game, Username)
+                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password\n"), user_ready(Sock, Game, Username);
+                        invalid -> gen_tcp:send(Sock, "close:error_invalid\n"), user_ready(Sock, Game, Username)
                     end;
                 "ready:false" -> 
                     unready(Username, Game),
-                    gen_tcp:send(Sock, "ready:ok"), user(Sock,  Username);
+                    gen_tcp:send(Sock, "ready:ok\n"), user(Sock,  Username);
                 "msg:" ++ Data -> 
                     lobby ! {line, Data},
                     user_ready(Sock, Game, Username)

@@ -334,7 +334,10 @@ public void draw(){
           } catch (IOException|InterruptedException e){
             e.printStackTrace();
           }
-          this.isReady = !this.isReady;
+          System.out.println("lmao");
+          if(Objects.equals(this.message, "ok"))
+            this.isReady = !this.isReady;
+
         }
       }
     }
