@@ -236,7 +236,7 @@ user(Sock, Username) ->
             user(Sock, Username);
         {tcp, _, Data} ->
             case Data of
-                "logout\n" -> 
+                "logout:\n" -> 
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok\n"),
                     main_menu(Sock);

@@ -174,6 +174,8 @@ private void waitingMenu(){
   fill(75,37,109);
   rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
   textSize(width*0.05f);
+  fill(206, 235, 251);
+  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   fill(188, 255, 18);
   text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
   text("Level: " + this.level,width*0.45f,height*0.2f);
@@ -287,7 +289,7 @@ public void draw(){
         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
           String username = this.user.getText();
           String password = this.password.getText();
-          
+
           if(this.registerMenu){
             try {
               this.connectionManager.send("register", username + ":" + password);
@@ -319,6 +321,30 @@ public void draw(){
           }
         }
       } else if(Objects.equals(this.menu, "waitingMenu")){
+        if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
+                triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
+                        triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
+                        triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+          try {
+            this.connectionManager.send("logout", "");
+          } catch (IOException e){
+            e.printStackTrace();
+          }
+
+          try{
+            this.message = this.connectionManager.receive("logout");
+          } catch (IOException|InterruptedException e){
+            e.printStackTrace();
+          }
+
+          if(Objects.equals(this.message, "ok")) {
+            this.message = "";
+            this.user.reset();
+            this.password.reset();
+            this.menu = "startMenu";
+          }
+        }
+
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           try{
             this.connectionManager.send("ready", Boolean.toString(!this.isReady));
