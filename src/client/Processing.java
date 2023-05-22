@@ -287,11 +287,7 @@ public void draw(){
         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
           String username = this.user.getText();
           String password = this.password.getText();
-          if(username.equals(""))
-            this.message = "Empty Username";
-          if(password.equals(""))
-            this.message = "Empty Password";
-
+          
           if(this.registerMenu){
             try {
               this.connectionManager.send("register", username + ":" + password);
