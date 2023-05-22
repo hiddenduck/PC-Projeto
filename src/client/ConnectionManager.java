@@ -35,10 +35,11 @@ public class ConnectionManager implements AutoCloseable{
             String message;
             try {
                 while ((message = input.readLine())!=null) {
-                    Queue<String> typeQueue = this.typeMap.get(message);
+                    String[] typeMessage = message.split(":", 2);
+                    Queue<String> typeQueue = this.typeMap.get(typeMessage[0]);
                     synchronized (typeQueue) {
-                        String[] typeMessage = message.split(":", 2);
                         typeQueue.add(typeMessage[1]);
+                        typeQueue.notify();
                     }
                 }
             } catch (IOException e){

@@ -265,8 +265,6 @@ public void draw(){
   public void mousePressed(){
     if(!this.isInGame){
       if(Objects.equals(this.menu, "startMenu")){
-        this.user.reset();
-        this.password.reset();
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
           this.menu = "logRegMenu";
           this.registerMenu = false;
@@ -280,8 +278,12 @@ public void draw(){
         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
           triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
           triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
-          triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY))
-            this.menu = "startMenu";
+          triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+          this.message = "";
+          this.user.reset();
+          this.password.reset();
+          this.menu = "startMenu";
+        }
         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.65f && mouseY < height*0.65f + height*0.1f){
           String username = this.user.getText();
           String password = this.password.getText();

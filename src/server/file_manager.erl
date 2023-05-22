@@ -26,7 +26,7 @@ start() ->
 		{ok, <<>>} -> Levels = #{};
 		{ok, LevelsBin} -> Levels = erlang:binary_to_term(LevelsBin)
 	end,
-	register(?MODULE, spawn(fun() -> loop(Passwords) end)), 
+	register(file_manager, spawn(fun() -> loop(Passwords) end)), 
 	register(level_manager, spawn(fun() -> loop_levels(Levels) end)),
 	{Passwords, Levels}.
 	%se o file_manager for um processo pode ser que não funcione se for ultrapassado
@@ -34,8 +34,8 @@ start() ->
 
 %Envia uma certa mensagem ao servidor esperando uma resposta do mesmo.
 invoke(Request) ->
-	?MODULE ! {Request, self()},
-	receive {Res, ?MODULE} -> Res end.
+	file_manager ! {Request, self()},
+	receive {Res, file_manager} -> Res end.
 
 %Permite a um cliente criar uma conta.
 create_account(Username, Passwd) ->
@@ -89,9 +89,9 @@ handle(Request, Map) ->
 			case maps:find(Username, Map) of
 				error -> 
 					level_manager ! {set_level, Username, self()},
-					{ok, 1, Map#{Username => Passwd}};
+					{ok, Map#{Username => Passwd}};
 				_ ->
-					{user_exists, 0, Map}
+					{user_exists, Map}
 			end;
 		{close_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
@@ -129,13 +129,13 @@ handle(Request, Map) ->
 loop(Map) ->
 	receive
 		{{create_account, Username, Passwd}, From} ->
-			{Res, Level, NextState} = handle({create_account, Username, Passwd}, Map),
-			From ! {{Res,Level}, ?MODULE},
+			{Res, NextState} = handle({create_account, Username, Passwd}, Map),
+			From ! {Res, file_manager},
 			loop(NextState);
 
 		{Request, From} ->
 			{Res, NextState} = handle(Request, Map),
-			From ! {Res, ?MODULE},
+			From ! {Res, file_manager},
 			loop(NextState);
 		stop ->
 			file:write_file("passwords", erlang:term_to_binary(Map))
@@ -208,7 +208,7 @@ loop_levels(Map) ->
 
 %Envia ao servidor e ao levels_manager uma mensagem para pararem a sua execução.
 stop() ->
-	?MODULE ! stop,
+	file_manager ! stop,
 	level_manager ! stop,
 	ok.
 

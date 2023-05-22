@@ -14,6 +14,7 @@ server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
     register(lobby, spawn(fun()-> lobby([]) end)),
     register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
+    spawn(fun() -> file_manager:start() end),
     spawn(fun() -> acceptor(LSock) end),
     receive stop -> ok end.
 
@@ -156,10 +157,10 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) ->
         {abort, Player} ->
             case Player of
                 FstPlayer -> 
-                    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(SndUsername, FstUsername),
+                    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(SndUsername, FstUsername),
                     end_game(SndPlayer,WinnerLevel,FstPlayer,LoserLevel);
                 SndPlayer ->
-                    {ok, WinnerLevel, LoserLevel} = level_manager:end_game(FstUsername, SndUsername),
+                    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(FstUsername, SndUsername),
                     end_game(FstPlayer, WinnerLevel, SndPlayer, LoserLevel)
             end
             %pontuar o outro jogador
@@ -188,29 +189,29 @@ main_menu(Sock) ->
     receive
         {tcp, _, "register:" ++ Data} ->
             [Username, Password] = re:split(Data, "[:]"),
-            case level_manager:create_account(Username, Password) of
-                ok -> gen_tcp:send(Sock, "register:ok");
-                user_exists -> gen_tcp:send(Sock, "register:user_exists")
+            case file_manager:create_account(Username, Password) of
+                ok -> gen_tcp:send(Sock, "register:ok\n");
+                user_exists -> gen_tcp:send(Sock, "register:user_exists\n")
             end,
             main_menu(Sock);
         {tcp, _, "login:" ++ Data} -> 
             [Username, Password] = re:split(Data, "[:]"),
-            case level_manager:login(Username, Password) of
+            case file_manager:login(Username, Password) of
                 ok ->
                     lobby ! {enter, "lobby", self()},
                     {ok, Level} = file_manager:check_level(Username),
-                    gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level)),
+                    gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
                     user(Sock, Username);
                 invalid_password ->
-                    gen_tcp:send(Sock, "login:invalid_password"),
+                    gen_tcp:send(Sock, "login:invalid_password\n"),
                     main_menu(Sock);
                 _ ->
-                    gen_tcp:send(Sock, "login:unknown_username"),
+                    gen_tcp:send(Sock, "login:unknown_username\n"),
                     main_menu(Sock)
             end;
         {tcp_error, _, _} -> ok;
         {tcp_closed, _, _} -> ok;
-        _ -> gen_tcp:send(Sock, "login:unknown_command")
+        _ -> gen_tcp:send(Sock, "login:unknown_command\n")
     end.
 
 user(Sock, Username) ->
@@ -224,7 +225,7 @@ user(Sock, Username) ->
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
                 "close:" ++ Data -> 
-                    case level_manager:close_account(Username, Data) of
+                    case file_manager:close_account(Username, Data) of
                         ok ->
                             lobby ! {leave, self()},
                             gen_tcp:send(Sock, "close:ok");
@@ -233,7 +234,7 @@ user(Sock, Username) ->
                         invalid -> gen_tcp:send(Sock, "close:error_invalid"), user(Sock, Username)
                     end;
                 "ready:true" ->
-                    {ok, Level} = level_manager:check_level(Username),
+                    {ok, Level} = file_manager:check_level(Username),
                     game_manager ! {ready, Level, Username, self()},
                     receive 
                         {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok"), user_ready(Sock, Game, Username)
@@ -251,7 +252,7 @@ user(Sock, Username) ->
 
 unready(Username, Game) ->
     Game ! {abort, self()},
-    {ok, Level} = level_manager:check_level(Username),
+    {ok, Level} = file_manager:check_level(Username),
     game_manager ! {unready, Level, self()}.
 
 user_ready(Sock, Game, Username) -> 
@@ -269,7 +270,7 @@ user_ready(Sock, Game, Username) ->
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok");
                 "close:" ++ Passwd -> 
-                    case level_manager:close_account(Username, Passwd) of
+                    case file_manager:close_account(Username, Passwd) of
                         ok -> 
                             unready(Username, Game),
                             lobby ! {leave, self()},
