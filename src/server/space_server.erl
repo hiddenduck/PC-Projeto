@@ -279,13 +279,14 @@ user_ready(Sock, Game, Username) ->
     receive
         {start_game, Simulation, Game} ->
             lobby ! {leave, self()},
+            Game ! {ok, self()},
             %game:start
             gen_tcp:send(Sock, "game:s\n"),
-            Reader = spawn(fun() -> player_tosim(Sock, Game, Simulation, Username, self()) end),
-            player_fromsim(Sock, Game, Simulation, Username, Reader);
+            ToSim = spawn(fun() -> player_tosim(Sock, Game, Simulation, Username, self()) end),
+            player_fromsim(Sock, Game, Simulation, Username, ToSim);
         {tcp, _, Data} ->
             case Data of
-                "logout\n" -> 
+                "logout:\n" -> 
                     unready(Username, Game),
                     lobby ! {leave, self()},
                     gen_tcp:send(Sock, "logout:ok\n"),
@@ -342,6 +343,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                 {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
+                    io:format("~p ~p ~p, ~p ~p ~p ~n", [XP, YP, AP, XE, YE, AE]),
                     gen_tcp:send(Sock, "game:" ++ integer_to_list(XP) ++ ":" ++ integer_to_list(YP) ++ ":" ++ integer_to_list(AP) ++
                                 ":posE:" ++ integer_to_list(XE) ++ ":" ++ integer_to_list(YE) ++ ":" ++ integer_to_list(AE) ++ "\n"),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
@@ -350,6 +352,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     %box:-:x:y:color
                     %Add e Remove são listas com listas dos elementos 
                     %[[x1,y1,color1], [x2,y2,color2]]
+                    io:format("~p ~p ~n", [Add, Remove]),
                     StrAddList = [string:join(["+" | A], ":") || A <- Add],
                     StrRemoveList = [string:join(["-" | R], ":") || R <- Remove],
                     gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ ":" ++ string:join(StrRemoveList, ":") ++ "\n"),
@@ -371,6 +374,7 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
         {tcp, _, DataN} -> 
             Data = lists:droplast(DataN),
             ["move", Left, Front, Right] = re:split(Data, "[:]"),
+            io:format("~p ~n", [Data]),
             if Left =:= "t", Right =:= "f" -> 
                 simulation:change_angle(Simulation,1)
             end,
