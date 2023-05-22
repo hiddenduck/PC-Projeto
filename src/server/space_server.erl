@@ -114,18 +114,15 @@ sync_up({FstPlayer, FstUsername}, {SndPlayer, SndUsername}) ->
         after 60000 -> end_game(SndPlayer, -1, FstPlayer, -1)
     end.
 
-abort_game(Game, Winner) ->
-    Game ! {abort, Winner}.
 
-%Player position: x,y,alpha
-%Inimigo position: x,y,alpha
-%Boxs
-%Pontuação
-%p_p:5
-%e_p:5
+%O Controller é a quem é enviada a mensagem (Controlador do jogo do lado do servidor)
 
-%Recebe as posições da simulação em duas listas
-%[[xp,yp,ap],[xe,ye,ap]]
+%Termina o jogo graciosamente, dado um vencedor
+abort_game(Controller, Winner) ->
+    Controller ! {abort, Winner}.
+
+%Recebe as posições da simulação em dois tuplos
+%{xp,yp,ap}, {xe,ye,ap}
 positions(FstPositions, SndPositions, Controller, Game) ->
     Controller ! {positions, FstPositions, SndPositions, Game}.
 
@@ -297,21 +294,32 @@ user_ready(Sock, Game, Username) ->
             lobby ! {leave, self()}
     end.
 
+%Filho direto do processo utilizador, o ToSim é o outro processo que deve ser terminado no fim 
 player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     receive
         {victory, Level, Game} -> 
+            ToSim ! {abort, self()},
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level)),
             user(Sock, Username);
         {defeat, Level, Game} -> 
+            ToSim ! {abort, self()},
             gen_tcp:send(Sock, "game:l"),
             user(Sock, Username)
         after 0 ->
             receive
-                {positions, Player, Enemy, Game} -> 
+                {victory, Level, Game} -> 
+                    ToSim ! {abort, self()},
+                    gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level)),
+                    user(Sock, Username);
+                {defeat, Level, Game} -> 
+                    ToSim ! {abort, self()},
+                    gen_tcp:send(Sock, "game:l"),
+                    user(Sock, Username);
+                {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
-                    gen_tcp:send(Sock, "game:" ++ string:join(list:map(fun(i) -> integer_to_list(i) end, Player), ":") ++ 
-                                ":posE:" ++ string:join(list:map(fun(i) -> integer_to_list(i) end, Enemy), ":")),
+                    gen_tcp:send(Sock, "game:" ++ integer_to_list(XP) ++ ":" ++ integer_to_list(YP) ++ ":" ++ integer_to_list(AP) ++
+                                ":posE:" ++ integer_to_list(XE) ++ ":" ++ integer_to_list(YE) ++ ":" ++ integer_to_list(AE)),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
@@ -323,9 +331,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ ":" ++ string:join(StrRemoveList, ":")),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {score, Player, Enemy, Game} ->
-                    %box:+:x:y:color
-                    %box:-:x:y:color
-                    gen_tcp:send(Sock, "points:" ++ Player ++ ":" ++ Enemy),
+                    gen_tcp:send(Sock, "points:" ++ integer_to_list(Player) ++ ":" ++ integer_to_list(Enemy)),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim)
             end
     end.
