@@ -349,8 +349,8 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     %pos:x:y:alpha
                     %posE:x:y:alpha
                     io:format("~p ~p ~p, ~p ~p ~p ~n", [XP, YP, AP, XE, YE, AE]),
-                    gen_tcp:send(Sock, lists:concat(["game:", XP, ":", YP , ":", AP,
-                                ":posE:", XE, ":", YE, ":", AE, "\n"])),
+                    gen_tcp:send(Sock, lists:concat(["pos:", XP, ":", YP , ":", AP,
+                                "\nposE:", XE, ":", YE, ":", AE, "\n"])),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color

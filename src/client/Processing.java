@@ -212,6 +212,7 @@ private void game() throws IOException{
   } finally {
     this.gameState.lrw.writeLock().unlock();
   }
+
   String[] statusArg = gameDraw.gameStatus.split(":", 2);
   if(Objects.equals(statusArg[0], "w")) {
     text("Victory", width * 0.5f, height * 0.5f);
@@ -345,7 +346,6 @@ public void draw(){
             this.menu = "startMenu";
           }
         }
-
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           try{
             this.connectionManager.send("ready", Boolean.toString(!this.isReady));

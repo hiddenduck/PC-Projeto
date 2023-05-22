@@ -70,6 +70,7 @@ class CommunicatorPoint extends Communicator{
     public void run(){
         try {
             String point = this.connectionManager.receive("point");
+            System.out.println(point);
             String[] points = point.split(":", 2);
             this.gameState.lrw.readLock().lock();
             try {

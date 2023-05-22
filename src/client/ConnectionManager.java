@@ -41,7 +41,7 @@ public class ConnectionManager implements AutoCloseable{
                     Queue<String> typeQueue = this.typeMap.get(typeMessage[0]);
                     synchronized (typeQueue) {
                         typeQueue.add(typeMessage[1]);
-                        typeQueue.notify();
+                        typeQueue.notifyAll();
                     }
                 }
             } catch (IOException e){
@@ -65,8 +65,9 @@ public class ConnectionManager implements AutoCloseable{
     public String receive(String type) throws IOException, InterruptedException{
         Queue<String> typeQueue = this.typeMap.get(type);
         synchronized (typeQueue) {
-            while (typeQueue.isEmpty())
+            while (typeQueue.isEmpty()) {
                 typeQueue.wait();
+            }
         }
         return typeQueue.remove();
     }
