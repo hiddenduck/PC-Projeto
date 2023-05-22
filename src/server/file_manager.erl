@@ -53,7 +53,7 @@ level_down(Username) ->
 
 %Permite-nos saber em que nível se encontra um determinado jogador.
 check_level(Username) ->
-	level_manager ! {start_game, Username, self()},
+	level_manager ! {check_level, Username, self()},
 	receive {Status, Level, level_manager} -> {Status, Level} end.
 
 %Informa o level_manager que se pretende iniciar um jogo entre dois jogadores. Obtém como resposta os níveis dos dois jogadores que devem ser iguais para que o jogo se inicie.

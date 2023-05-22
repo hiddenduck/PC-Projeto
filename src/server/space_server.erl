@@ -197,7 +197,7 @@ main_menu(Sock) ->
                 ok ->
                     lobby ! {enter, "lobby", self()},
                     case file_manager:check_level(Username) of
-                        {ok, Level} -> gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
+                        {ok, Level} ->  gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
                                         user(Sock, Username);
                         {invalid_user, _} -> gen_tcp:send(Sock, "login:invalid_user\n");
                         _ -> gen_tcp:send(Sock, "login:error\n")
