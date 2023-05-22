@@ -349,8 +349,8 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     %pos:x:y:alpha
                     %posE:x:y:alpha
                     io:format("~p ~p ~p, ~p ~p ~p ~n", [XP, YP, AP, XE, YE, AE]),
-                    gen_tcp:send(Sock, "game:" ++ integer_to_list(XP) ++ ":" ++ integer_to_list(YP) ++ ":" ++ integer_to_list(AP) ++
-                                ":posE:" ++ integer_to_list(XE) ++ ":" ++ integer_to_list(YE) ++ ":" ++ integer_to_list(AE) ++ "\n"),
+                    gen_tcp:send(Sock, lists:concat(["game:", XP, ":", YP , ":", AP,
+                                ":posE:", XE, ":", YE, ":", AE, "\n"])),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
@@ -360,10 +360,10 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     io:format("~p ~p ~n", [Add, Remove]),
                     StrAddList = [string:join(["+" | A], ":") || A <- Add],
                     StrRemoveList = [string:join(["-" | R], ":") || R <- Remove],
-                    gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ ":" ++ string:join(StrRemoveList, ":") ++ "\n"),
+                    gen_tcp:send(Sock, lists:concat(["box:", string:join(StrAddList, ":"), ":", string:join(StrRemoveList, ":"), "\n"])),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {score, Player, Enemy, Game} ->
-                    gen_tcp:send(Sock, "points:" ++ integer_to_list(Player) ++ ":" ++ integer_to_list(Enemy) ++ "\n"),
+                    gen_tcp:send(Sock, lists:concat(["points:", Player, ":", Enemy, "\n"])),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim)
             end
     end.
