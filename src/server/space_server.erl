@@ -22,7 +22,7 @@ server(Port) ->
 lobby(Users) ->
     receive
         {enter, User} ->
-            io:format("user entered ~p ~n", []),
+            io:format("user entered ~p ~n", [User]),
             lobby([User | Users]);
         {line, Data} = Msg ->
             io:format("received  ~p ~n", [Data]),
