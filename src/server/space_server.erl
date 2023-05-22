@@ -149,14 +149,17 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) ->
         stop ->
             end_game(FstPlayer, -1, SndPlayer, -1);
         {positions, FstPositions, SndPositions, _} -> 
+            io:format("Positions\n"),
             positions(FstPositions, SndPositions, FstPlayer, self()),
             positions(SndPositions, FstPositions, SndPlayer, self()),
             game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
         {score, FstScore, SndScore, _} -> 
+            io:format("Scores\n"),
             score(FstScore, SndScore, FstPlayer, self()),
             score(SndScore, FstScore, SndPlayer, self()),
             game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
-        {boxes, Add, Remove, _} -> 
+        {boxes, Add, Remove, _} ->
+            io:format("Boxes\n"), 
             boxes(Add, Remove, FstPlayer, self()),
             boxes(Add, Remove, SndPlayer, self()),
             game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
@@ -321,6 +324,7 @@ user_ready(Sock, Game, Username) ->
 
 %Filho direto do processo utilizador, o ToSim é o outro processo que deve ser terminado no fim 
 player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
+    io:format("player_from\n"),
     receive
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
@@ -331,6 +335,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
             gen_tcp:send(Sock, "game:l\n"),
             user(Sock, Username)
         after 0 ->
+            io:format("player_from_after\n"),
             receive
                 {victory, Level, Game} -> 
                     ToSim ! {abort, self()},
@@ -368,6 +373,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
 %telogo
 
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
+    io:format("player_to\n"),
     receive
         {abort, FromSim} ->
             ok;
@@ -383,8 +389,11 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
             end,
             if Left =:= "f", Right =:= "t" -> 
                 simulation:change_angle(Simulation,-1)
-            end;
+            end,
+            player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp_closed, _} -> ok;
         {tcp_error, _, _} -> ok;
-        _ -> player_tosim(Sock, Game, Simulation, Username, FromSim)
+        Wat -> 
+            io:format("~p", Wat),
+            player_tosim(Sock, Game, Simulation, Username, FromSim)
     end.
