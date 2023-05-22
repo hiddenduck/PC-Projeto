@@ -238,8 +238,10 @@ user(Sock, Username) ->
             case Data of
                 "logout\n" -> 
                     lobby ! {leave, self()},
-                    gen_tcp:send(Sock, "logout:ok\n");
-                "close:" ++ Data -> 
+                    gen_tcp:send(Sock, "logout:ok\n"),
+                    main_menu(Sock);
+                "close:" ++ DataN -> 
+                    Data = lists:droplast(DataN),
                     %Data = lists:droplast(DataN),
                     case file_manager:close_account(Username, Data) of
                         ok ->
@@ -286,8 +288,10 @@ user_ready(Sock, Game, Username) ->
                 "logout\n" -> 
                     unready(Username, Game),
                     lobby ! {leave, self()},
-                    gen_tcp:send(Sock, "logout:ok\n");
-                "close:" ++ Passwd -> 
+                    gen_tcp:send(Sock, "logout:ok\n"),
+                    main_menu(Sock);
+                "close:" ++ PasswdN -> 
+                    Passwd = lists:droplast(PasswdN),
                     case file_manager:close_account(Username, Passwd) of
                         ok -> 
                             unready(Username, Game),
@@ -319,27 +323,27 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     receive
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
-            gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level)),
+            gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
             user(Sock, Username);
         {defeat, Level, Game} -> 
             ToSim ! {abort, self()},
-            gen_tcp:send(Sock, "game:l"),
+            gen_tcp:send(Sock, "game:l\n"),
             user(Sock, Username)
         after 0 ->
             receive
                 {victory, Level, Game} -> 
                     ToSim ! {abort, self()},
-                    gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level)),
+                    gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
                     user(Sock, Username);
                 {defeat, Level, Game} -> 
                     ToSim ! {abort, self()},
-                    gen_tcp:send(Sock, "game:l"),
+                    gen_tcp:send(Sock, "game:l\n"),
                     user(Sock, Username);
                 {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
                     gen_tcp:send(Sock, "game:" ++ integer_to_list(XP) ++ ":" ++ integer_to_list(YP) ++ ":" ++ integer_to_list(AP) ++
-                                ":posE:" ++ integer_to_list(XE) ++ ":" ++ integer_to_list(YE) ++ ":" ++ integer_to_list(AE)),
+                                ":posE:" ++ integer_to_list(XE) ++ ":" ++ integer_to_list(YE) ++ ":" ++ integer_to_list(AE) ++ "\n"),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
@@ -348,10 +352,10 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     %[[x1,y1,color1], [x2,y2,color2]]
                     StrAddList = [string:join(["+" | A], ":") || A <- Add],
                     StrRemoveList = [string:join(["-" | R], ":") || R <- Remove],
-                    gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ ":" ++ string:join(StrRemoveList, ":")),
+                    gen_tcp:send(Sock, "box:" ++ string:join(StrAddList, ":") ++ ":" ++ string:join(StrRemoveList, ":") ++ "\n"),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {score, Player, Enemy, Game} ->
-                    gen_tcp:send(Sock, "points:" ++ integer_to_list(Player) ++ ":" ++ integer_to_list(Enemy)),
+                    gen_tcp:send(Sock, "points:" ++ integer_to_list(Player) ++ ":" ++ integer_to_list(Enemy) ++ "\n"),
                     player_fromsim(Sock, Game, Simulation, Username, ToSim)
             end
     end.
@@ -364,7 +368,8 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
     receive
         {abort, FromSim} ->
             ok;
-        {tcp, _, Data} -> 
+        {tcp, _, DataN} -> 
+            Data = lists:droplast(DataN),
             ["move", Left, Front, Right] = re:split(Data, "[:]"),
             if Left =:= "t", Right =:= "f" -> 
                 simulation:change_angle(Simulation,1)
