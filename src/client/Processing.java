@@ -341,6 +341,7 @@ public void draw(){
             this.message = "";
             this.user.reset();
             this.password.reset();
+            this.menuImage = loadImage("images/space.jpg");
             this.menu = "startMenu";
           }
         }
@@ -358,7 +359,6 @@ public void draw(){
           }
           if(Objects.equals(this.message, "ok"))
             this.isReady = !this.isReady;
-
         }
       }
     }
