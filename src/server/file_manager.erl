@@ -1,5 +1,6 @@
 -module(file_manager).
 -export([start/0, 
+		stop/0,
 		create_account/2, 
 		close_account/2, 
 		login/2, 
@@ -18,6 +19,7 @@
 %documentar melhor, so esbocei
 
 start() ->
+	%{error, enoent} quando não existe o ficheiro
 	case file:read_file("passwords") of
 		{ok, <<>>} -> Passwords = #{};
 		{ok, PassBin} -> Passwords = erlang:binary_to_term(PassBin)

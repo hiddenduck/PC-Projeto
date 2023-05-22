@@ -57,7 +57,7 @@ public class ConnectionManager implements AutoCloseable{
     }
 
     public void send(String type, String message) throws IOException{
-        output.println(type+":"+message);
+        output.printf("%s:%s\n", type,message);
         output.flush();
     }
 
