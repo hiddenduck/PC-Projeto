@@ -78,8 +78,8 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
             after
                 0 ->
 
-                    Base1 = {1,0},
-                    Base2 = {-1,0},
+                    Base1 = {1,0,0},
+                    Base2 = {-1,0,0},
                     
                     {Player1_sim, Player2_sim} = Player_sims,
                     {Pos1, Pos2} = Pos,
@@ -87,7 +87,7 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                     {X1_, Y1_, Alfa1} = new_pos(Pos1, Player1_sim),
                     {X2_, Y2_, Alfa2} = new_pos(Pos2, Player2_sim),
 
-                    space_server:positions({X1_, Y1_}, {X2_, Y2_}, Controler, self()),
+                    space_server:positions({X1_, Y1_, Alfa1}, {X2_, Y2_, Alfa2}, Controler, self()),
 
                     Boundx = 1,%TODO tune
                     Boundy = 1,%TODO tune
