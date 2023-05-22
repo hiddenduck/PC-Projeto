@@ -9,8 +9,15 @@ start_game(Game) ->
     P2 = {{0, 0}, math:pi(), {1,1}},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
-    GameSim = spawn(fun() -> game(Game, {{1, 0}, {-1, 0}}, {Player1_sim, Player2_sim}, [], {0, 0}) end),
-    spawn(fun() -> ticker(GameSim) end),
+    GameSim = spawn(fun() -> Self = self(),
+        game(
+        Game,
+        {{1, 0}, {-1, 0}},
+        {Player1_sim, Player2_sim},
+        [],
+        {0, 0},
+        spawn(fun() -> ticker(Self) end)
+    ) end),
     spawn(fun() -> timer(GameSim) end),
     {Player1_sim, Player2_sim}.
 
@@ -27,9 +34,15 @@ sleep(T) ->
         true
     end.
 
-ticker(Game) ->
+ticker(GameSim) ->
     sleep(1000),
-    Game ! tick.
+    receive
+        {reset, GameSim} -> 
+            sleep(2000) %TODO tune
+    after
+        0 ->
+            GameSim ! tick
+    end.
 
 new_pos({X, Y}, Sim) ->
     Sim ! {return_state, self()},
@@ -48,7 +61,7 @@ timer(GameSim) ->
 %and calculating position
 %finally it checks if a player is out of bounds
 %colison of players and updates deltas from Powerups
-game(Game, Pos, Player_sims, Powerups, {P1, P2}) ->
+game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
     receive
         tick ->
             receive
@@ -59,16 +72,22 @@ game(Game, Pos, Player_sims, Powerups, {P1, P2}) ->
                         P1 > P2 -> Player1_sim;
                         P1 < P2 -> Player2_sim
                     end,
-                    space_server:abort_game(Game, Winner),
+                    space_server:abort_game(Controler, Winner),
                     [PlayerSim ! stop || PlayerSim <- Player_sims],
                     ok
             after
                 0 ->
+
+                    Base1 = {1,0},
+                    Base2 = {-1,0},
+                    
                     {Player1_sim, Player2_sim} = Player_sims,
                     {Pos1, Pos2} = Pos,
 
                     {X1_, Y1_, Alfa1} = new_pos(Pos1, Player1_sim),
                     {X2_, Y2_, Alfa2} = new_pos(Pos2, Player2_sim),
+
+                    space_server:positions({X1_, Y1_}, {X2_, Y2_}, Controler, self()),
 
                     Boundx = 1,%TODO tune
                     Boundy = 1,%TODO tune
@@ -76,32 +95,45 @@ game(Game, Pos, Player_sims, Powerups, {P1, P2}) ->
                     if % check players in bounds
                        X1_ > Boundx, X1_ < Boundx; Y1_ > Boundy, Y1_ < Boundy ->
                            Player1_sim ! reset_param,
-                           game(Game, {{0, 0}, {0, 0}}, Player_sims, Powerups, {P1, P2 + 1});
-                       X2_ > Boundx, X2_ < Boundx; Y2_ > Boundy, Y2_ < Boundy ->
                            Player2_sim ! reset_param,
-                           game(Game, {{0, 0}, {0, 0}}, Player_sims, Powerups, {P1 + 1, P2});
+                           
+                           space_server:positions(Base1, Base2, Controler, self()),
+                           space_server:score(P1, P2+1, Controler, self()),
+                           
+                           game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
+                       X2_ > Boundx, X2_ < Boundx; Y2_ > Boundy, Y2_ < Boundy ->
+                           Player1_sim ! reset_param,
+                           Player2_sim ! reset_param,
+                           
+                           space_server:positions(Base1, Base2, Controler, self()),
+                           space_server:score(P1 + 1, P2, Controler, self()),
+                           
+                           game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                        true -> % else check_player_colision
                            case check_player_colision(Pos1, Pos2, Alfa1, Alfa2) of
                                hit1 ->
                                    Player1_sim ! reset_param,
-                                   game(Game, {{0, 0}, {0, 0}},
-                                        Player_sims,
-                                        Powerups,
-                                        {P1 + 1, P2}); % TODO inicializar os players a um valor random
+                                   Player2_sim ! reset_param,
+                           
+                                   space_server:positions(Base1, Base2, Controler, self()),
+                                   space_server:score(P1 + 1, P2, Controler, self()),
+
+                                   game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                                hit2 ->
                                    Player2_sim ! reset_param,
-                                   game(Game, {{0, 0}, {0, 0}},
-                                        Player_sims,
-                                        Powerups,
-                                        {P1, P2 + 1}); % TODO inicializar os players a um valor random
+                           
+                                   space_server:positions(Base1, Base2, Controler, self()),
+                                   space_server:score(P1, P2 + 1, Controler, self()),
+
+                                   game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                                nohit ->
-                                   game(Game, {{X1_, Y1_},
+                                   game(Controler, {{X1_, Y1_},
                                          {X2_, Y2_}}, % if no hit call ticker after update_deltas
                                         {Player1_sim, Player2_sim},
                                         Powerups
                                         -- update_deltas({X1_, Y1_}, Powerups, Player1_sim)
                                         -- update_deltas({X2_, Y2_}, Powerups, Player2_sim),
-                                        {P1, P2})
+                                        {P1, P2}, Ticker)
                            end
                     end
             end
