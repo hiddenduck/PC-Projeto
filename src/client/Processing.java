@@ -229,13 +229,13 @@ private void game() throws IOException{
     triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   } else {
     fill(46, 123, 238);
-    ellipse(gameDraw.posX, gameDraw.posY, 100, 100);
+    ellipse(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY, 10, 10);
     pushMatrix();
     rotate(gameDraw.alfa);
     line(gameDraw.posX, gameDraw.posY, gameDraw.posX, gameDraw.posY + 0.5f);
     popMatrix();
     fill(238, 46, 59);
-    ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 100, 100);
+    ellipse(width*0.1f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 10, 10);
     pushMatrix();
     rotate(gameDraw.enemyAlfa);
     line(gameDraw.enemyPosX, gameDraw.enemyPosY, gameDraw.enemyPosX + 0.5f, gameDraw.enemyPosY + 0.5f);
