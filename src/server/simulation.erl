@@ -54,7 +54,7 @@ new_pos({X, Y}, Sim) ->
     receive
         State->
             {{Vx, Vy}, Alfa, _} = State,
-            io:format("~p\n", [State]),
+            %io:format("~p\n", [State]),
             {X + Vx, Y + Vy, Alfa}
     end.
 
@@ -72,7 +72,7 @@ timer(GameSim) ->
 game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
     receive
         timeout when P1 /= P2 -> 
-            io:format("tick tock\n"),
+            %io:format("tick tock\n"),
             {Player1_sim, Player2_sim} = Player_sims,
             Winner = 
             if
@@ -167,12 +167,12 @@ simulator(PlayerState, Flag) ->
         stop -> 
             ok;
         speed_up when Flag band 1 == 0 ->
-            io:format("vroom received, over\n"),
+            %io:format("vroom received, over\n"),
             NewPlayerState =
                 {{Vx + Accel * math:cos(Alfa), Vy + Accel * math:sin(Alfa)}, Alfa, {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 1);
         {change_direction, Dir} when Flag band 2 == 0 ->
-            io:format("turn received, over\n"),
+            %io:format("turn received, over\n"),
             NewPlayerState = {{Vx, Vy}, math:fmod(Alfa + Dir * AngVel, 2*math:pi()), {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 2);
         _ ->
