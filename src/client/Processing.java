@@ -223,7 +223,7 @@ private void game() throws IOException{
     this.isInGame = false;
   } else {
     fill(46, 123, 238);
-    ellipse(gameDraw.posX, gameDraw.posY, 1, 1);
+    ellipse(gameDraw.posX, gameDraw.posY, 100, 100);
     pushMatrix();
     rotate(gameDraw.alfa);
     line(gameDraw.posX, gameDraw.posY, gameDraw.posX, gameDraw.posY + 0.5f);
@@ -242,9 +242,11 @@ private void game() throws IOException{
       rect(box.floats[0], box.floats[1], 1, 1);
     }
 
-    if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) { // if something fishy, the bug is probably here
+    /*
+    if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
       this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
     }
+     */
   }
 }
 
@@ -366,12 +368,17 @@ public void draw(){
 
   public void keyPressed(){
     if(isInGame) {
-      switch (this.key) {
+      switch (key) {
         case ('a') -> this.keysPressed[0] = true;
         case ('w') -> this.keysPressed[1] = true;
         case ('d') -> this.keysPressed[2] = true;
       }
-    } else{
+      try {
+        this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
+      } catch (Exception e){
+        e.printStackTrace();
+      }
+    }else{
       if(this.user.active){
         this.user.keyPressed(key);
       } else if(this.password.active){
