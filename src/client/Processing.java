@@ -261,9 +261,9 @@ private void game() throws IOException{
     strokeWeight(0);
 
     fill(255, 16, 240);
-    ellipse(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
+    ellipse(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
     fill(251, 255, 22);
-    ellipse(width*0.1f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 20, 20);
+    ellipse(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 20, 20);
 
     Triple triple;
     for (Triple box : gameDraw.boxes) {
