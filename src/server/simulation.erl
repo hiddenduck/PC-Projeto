@@ -26,7 +26,8 @@ change_speed(PlayerSim) ->
     PlayerSim ! speed_up.
 
 change_angle(PlayerSim, Dir) ->
-    PlayerSim ! {change_angle, Dir}.
+    io:format("turn ~p\n", [PlayerSim]),
+    PlayerSim ! {change_direction, Dir}.
 
 %sleep function yoinked from stor
 %may be better function in erlang
@@ -163,6 +164,7 @@ simulator(PlayerState, Flag) ->
                 {{Vx + Accel * math:cos(Alfa), Vy + Accel * math:sin(Alfa)}, Alfa, {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 1);
         {change_direction, Dir} when Flag band 2 == 0 ->
+            io:format("turn received, over\n"),
             NewPlayerState = {{Vx, Vy}, math:fmod(Alfa + Dir * AngVel, 2*math:pi()), {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 2);
         _ ->
