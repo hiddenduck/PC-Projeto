@@ -5,8 +5,8 @@
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
 start_game(Game) ->
-    P1 = {{0, 0}, 0, {0.25,1}},
-    P2 = {{0, 0}, 0, {0.25,1}},
+    P1 = {{0, 0}, 0, {0.25,0.125}},
+    P2 = {{0, 0}, 0, {0.25,0.125}},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> Self = self(),
@@ -19,14 +19,12 @@ start_game(Game) ->
         spawn(fun() -> ticker(Self) end)
     ) end),
     spawn(fun() -> timer(GameSim) end),
-    {Player1_sim, Player2_sim}.
+    {Player1_sim, Player2_sim, GameSim}.
 
 change_speed(PlayerSim) ->
-    io:format("vroom ~p\n", [PlayerSim]),
     PlayerSim ! speed_up.
 
 change_angle(PlayerSim, Dir) ->
-    io:format("turn ~p\n", [PlayerSim]),
     PlayerSim ! {change_direction, Dir}.
 
 %sleep function yoinked from stor
@@ -71,6 +69,11 @@ timer(GameSim) ->
 %colison of players and updates deltas from Powerups
 game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
     receive
+        {stop, Controler} ->
+            {Player1_sim, Player2_sim} = Player_sims,
+            Player1_sim ! stop,
+            Player2_sim ! stop,
+            ok;
         timeout when P1 /= P2 -> 
             %io:format("tick tock\n"),
             {Player1_sim, Player2_sim} = Player_sims,
@@ -80,7 +83,8 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                 P1 < P2 -> Player2_sim
             end,
             space_server:abort_game(Controler, Winner),
-            [PlayerSim ! stop || PlayerSim <- Player_sims],
+            Player1_sim ! stop,
+            Player2_sim ! stop,
             ok;
 
         tick ->
@@ -220,10 +224,13 @@ check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->
-                  hit1;
-              true ->
-                  hit2
+                io:format("Hit1\n"),
+                hit1;
+            true ->
+                io:format("Hit2\n"),
+                hit2
            end;
-       true ->
-           nohit
+        true ->
+            io:format("NoHit\n"),
+            nohit
     end.
