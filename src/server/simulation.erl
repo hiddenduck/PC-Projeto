@@ -106,7 +106,7 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
             Boundy_max = 700,%TODO tune
 
             if % check players in bounds
-                X1_ > Boundx_min, X1_ < Boundx_max; Y1_ > Boundy_min, Y1_ < Boundy_max ->
+                X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
                     Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
 
@@ -116,7 +116,7 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                     Ticker ! reset,
 
                     game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
-                X2_ > Boundx_min, X2_ < Boundx_max; Y2_ > Boundy_min, Y2_ < Boundy_max ->
+                X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
                     Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
 
