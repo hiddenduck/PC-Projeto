@@ -75,18 +75,21 @@ class CommunicatorPoint extends Communicator{
     }
 
     public void run(){
-        try {
-            String point = this.connectionManager.receive("points");
-            String[] points = point.split(":", 2);
-            this.gameState.lrw.readLock().lock();
+        String point = null;
+        do {
             try {
-                this.gameState.putPoint(Integer.parseInt(points[0]), Integer.parseInt(points[1]));
-            } finally {
-                this.gameState.lrw.readLock().unlock();
+                point = this.connectionManager.receive("points");
+                String[] points = point.split(":", 2);
+                this.gameState.lrw.readLock().lock();
+                try {
+                    this.gameState.putPoint(Integer.parseInt(points[0]), Integer.parseInt(points[1]));
+                } finally {
+                    this.gameState.lrw.readLock().unlock();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        } while(point!=null);
     }
 }
 
