@@ -236,7 +236,7 @@ private void game() throws IOException{
   } else {
     background(this.menuImage);
     fill(119,136,153);
-    rect(width*0.1f,height*0.1f, 600, 600);
+    rect(width*0.0625f,height*0.1f, 700, 700);
     textSize(width*0.05f);
     fill(255);
     text(gameDraw.point + ":" + gameDraw.enemyPoint, width*0.5f, height*0.05f);
