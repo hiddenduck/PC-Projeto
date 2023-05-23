@@ -12,10 +12,10 @@ stop() -> ?MODULE ! stop.
 %Regista dois processos, um como o lobby e outro como o game_manager, depois torna-se no acceptor
 server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
-    register(lobby, spawn(fun()-> lobby(#{}) end)),
-    register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
     spawn(fun() -> file_manager:start() end),
     spawn(fun() -> acceptor(LSock) end),
+    register(lobby, spawn(fun()-> lobby(#{}) end)),
+    register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
     receive stop -> 
         file_manager:stop(),
         lobby ! stop,
@@ -34,17 +34,19 @@ lobby(Users) ->
             lobby(Users);
         {unready, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
-            lobby(Users#{Username => unready});
+            lobby(Users#{Username => {unready, User}});
         {ready, Username, User} ->
             io:format("user ready ~p ~n", [Username]),
-            lobby(Users#{Username => ready});
+            lobby(Users#{Username => {ready, User}});
         {game, Username, User} ->
             io:format("user game ~p ~n", [Username]),
-            lobby(Users#{Username => game});
-        {leave, Username, User} ->
+            lobby(Users#{Username => {game, User}});
+        {leave, Username} ->
             io:format("user left ~p ~n", [Username]),
             lobby(maps:remove(Username, Users));
-        stop -> todo
+        stop -> 
+            lists:map(fun({_, Pid})-> Pid ! stop end, maps:values(Users)),
+            io:format("lobby terminado\n")
     end.  
 
 %Gestor dos jogos
