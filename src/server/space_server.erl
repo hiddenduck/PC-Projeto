@@ -298,10 +298,10 @@ user_ready(Sock, Game, Username) ->
     receive
         {start_game, Simulation, Game} ->
             lobby ! {game, Username, self()},
-            Game ! {ok, self()},
             %game:start
             gen_tcp:send(Sock, "game:s\n"),
             FromSim = spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username, self()) end),
+            Game ! {ok, FromSim, self()},
             player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp, _, Data} ->
             case Data of
