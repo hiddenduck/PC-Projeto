@@ -215,10 +215,12 @@ private void game() throws IOException{
 
   String[] statusArg = gameDraw.gameStatus.split(":", 2);
   if(Objects.equals(statusArg[0], "w")) {
+    textSize(width*0.1f);
     text("Victory", width * 0.5f, height * 0.5f);
     this.isInGame = false;
     this.level = Integer.parseInt(statusArg[1]);
   } else if(Objects.equals(statusArg[0], "l")){
+    textSize(width*0.1f);
     text("Defeat", width*0.5f, height*0.5f);
     this.isInGame = false;
   } else {
