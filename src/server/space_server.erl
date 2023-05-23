@@ -186,13 +186,13 @@ game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim) ->
                 p1 -> 
                     WinnerUsername = SndUsername, LoserUsername = FstUsername,
                     WinnerFrom = FromSnd, LoserFrom = FromFst;
-                p2 -> 
-                    WinnerUsername = FstUsername, LoserUsername = SndUsername,
-                    WinnerFrom = FromFst, LoserFrom = FromSnd;
                 ToFst -> 
                     WinnerUsername = SndUsername, LoserUsername = FstUsername,
                     WinnerFrom = FromSnd, LoserFrom = FromFst;
                 ToSnd ->
+                    WinnerUsername = FstUsername, LoserUsername = SndUsername,
+                    WinnerFrom = FromFst, LoserFrom = FromSnd;
+                p2 -> 
                     WinnerUsername = FstUsername, LoserUsername = SndUsername,
                     WinnerFrom = FromFst, LoserFrom = FromSnd
             end,
