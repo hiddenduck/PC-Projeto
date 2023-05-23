@@ -318,7 +318,7 @@ user_ready(Sock, Game, Username) ->
             %game:start
             gen_tcp:send(Sock, "game:s\n"),
             ToSim = self(),
-            FromSim = spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username, ToSim) end),
+            FromSim = spawn(fun() -> player_fromsim(Sock, Game, ToSim) end),
             Game ! {ok, FromSim, self()},
             player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp, _, Data} ->
@@ -358,7 +358,7 @@ user_ready(Sock, Game, Username) ->
             gen_tcp:send(Sock, "server:closed\n")
     end.
 
-player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
+player_fromsim(Sock, Game, ToSim) ->
     %io:format("player_from\n"),
     receive
         {victory, Level, Game} -> 
@@ -378,14 +378,14 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     gen_tcp:send(Sock, "game:l\n");
                 {golden, Game} -> 
                     gen_tcp:send(Sock, "game:g\n"),
-                player_fromsim(Sock, Game, Simulation, Username, ToSim);
+                player_fromsim(Sock, Game, ToSim);
                 {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
                     %io:format("~p ~p ~p, ~p ~p ~p ~n", [XP, YP, AP, XE, YE, AE]),
                     gen_tcp:send(Sock, lists:concat(["pos:", XP, ":", YP , ":", AP,
                                 "\nposE:", XE, ":", YE, ":", AE, "\n"])),
-                    player_fromsim(Sock, Game, Simulation, Username, ToSim);
+                    player_fromsim(Sock, Game, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
                     %box:-:x:y:color
@@ -395,10 +395,10 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                     StrAddList = [string:join(["+" | A], ":") || A <- Add],
                     StrRemoveList = [string:join(["-" | R], ":") || R <- Remove],
                     gen_tcp:send(Sock, lists:concat(["box:", string:join(StrAddList, ":"), ":", string:join(StrRemoveList, ":"), "\n"])),
-                    player_fromsim(Sock, Game, Simulation, Username, ToSim);
+                    player_fromsim(Sock, Game, ToSim);
                 {score, Player, Enemy, Game} ->
                     gen_tcp:send(Sock, lists:concat(["points:", Player, ":", Enemy, "\n"])),
-                    player_fromsim(Sock, Game, Simulation, Username, ToSim)
+                    player_fromsim(Sock, Game, ToSim)
             end
     end.
 
