@@ -42,7 +42,8 @@ ticker(GameSim) ->
     after
         0 ->
             GameSim ! tick
-    end.
+    end,
+    ticker(GameSim).
 
 new_pos({X, Y}, Sim) ->
     Sim ! {return_state, self()},
