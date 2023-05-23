@@ -5,8 +5,8 @@
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
 start_game(Game) ->
-    P1 = {{0, 0}, 0, {0,0}},
-    P2 = {{0, 0}, 0, {0,0}},
+    P1 = {{0, 0}, 0, {1,1}},
+    P2 = {{0, 0}, 0, {1,1}},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> Self = self(),
@@ -22,6 +22,7 @@ start_game(Game) ->
     {Player1_sim, Player2_sim}.
 
 change_speed(PlayerSim) ->
+    io:format("vroom\n"),
     PlayerSim ! speed_up.
 
 change_angle(PlayerSim, Dir) ->
