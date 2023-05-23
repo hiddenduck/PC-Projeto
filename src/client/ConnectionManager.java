@@ -19,7 +19,7 @@ public class ConnectionManager implements AutoCloseable{
         this.typeMap.put("pos", new LinkedList<>());
         this.typeMap.put("posE", new LinkedList<>());
         this.typeMap.put("box", new LinkedList<>());
-        this.typeMap.put("point", new LinkedList<>());
+        this.typeMap.put("points", new LinkedList<>());
         this.typeMap.put("game", new LinkedList<>());
         this.typeMap.put("receive", new LinkedList<>());
         this.typeMap.put("register", new LinkedList<>());
@@ -37,6 +37,7 @@ public class ConnectionManager implements AutoCloseable{
             String message;
             try {
                 while ((message = input.readLine())!=null) {
+                    System.out.println(message);
                     String[] typeMessage = message.split(":", 2);
                     Queue<String> typeQueue = this.typeMap.get(typeMessage[0]);
                     synchronized (typeQueue) {

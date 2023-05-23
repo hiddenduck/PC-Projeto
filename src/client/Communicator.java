@@ -24,6 +24,7 @@ class CommunicatorPos extends Communicator{
             String[] posArgs = pos.split(":", 3);
             this.gameState.lrw.readLock().lock();
             try {
+                System.out.println(posArgs[0] + " " + posArgs[1] + " " + posArgs[2]);
                 this.gameState.putPos(Float.parseFloat(posArgs[0]), Float.parseFloat(posArgs[1]),
                         Float.parseFloat(posArgs[2]), Objects.equals(this.enemy, "E"));
             } finally {
@@ -69,7 +70,7 @@ class CommunicatorPoint extends Communicator{
 
     public void run(){
         try {
-            String point = this.connectionManager.receive("point");
+            String point = this.connectionManager.receive("points");
             System.out.println(point);
             String[] points = point.split(":", 2);
             this.gameState.lrw.readLock().lock();

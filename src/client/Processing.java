@@ -373,10 +373,12 @@ public void draw(){
         case ('w') -> this.keysPressed[1] = true;
         case ('d') -> this.keysPressed[2] = true;
       }
-      try {
-        this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
-      } catch (Exception e){
-        e.printStackTrace();
+      if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
+        try {
+          this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
       }
     }else{
       if(this.user.active){
