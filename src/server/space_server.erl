@@ -390,6 +390,7 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
     io:format("player_to\n"),
     receive
         {abort, FromSim} ->
+            lobby ! {unready, Username, self()},
             user(Sock, Username);
         {tcp, _, DataN} -> 
             Data = lists:droplast(DataN),
@@ -412,9 +413,9 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
             end,
             player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp_closed, _} -> 
-            Game ! {abort, self()};
+            abort_game(Game, self());
             
         {tcp_error, _, _} -> 
-            Game ! {abort, self()}
+            abort_game(Game, self())
 
     end.
