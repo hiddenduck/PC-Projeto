@@ -78,8 +78,8 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
             after
                 0 ->
 
-                    Base1 = {1,0,0},
-                    Base2 = {-1,0,0},
+                    Base1 = {0.25,0.5,0},
+                    Base2 = {0.75,0.5,0},
                     
                     {Player1_sim, Player2_sim} = Player_sims,
                     {Pos1, Pos2} = Pos,
