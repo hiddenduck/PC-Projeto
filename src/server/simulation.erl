@@ -77,20 +77,20 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
         timeout when P1 /= P2 -> 
             %io:format("tick tock\n"),
             {Player1_sim, Player2_sim} = Player_sims,
-            Winner = 
+            Loser = 
             if
-                P1 > P2 -> Player1_sim;
-                P1 < P2 -> Player2_sim
+                P1 > P2 -> p2;
+                P1 < P2 -> p1
             end,
-            space_server:abort_game(Controler, Winner),
+            space_server:abort_game(Controler, Loser),
             Player1_sim ! stop,
             Player2_sim ! stop,
             ok;
 
         tick ->
 
-            Base1 = {400,400,0},
-            Base2 = {402,400,0},
+            Base1 = {100,400},
+            Base2 = {400,400},
 
             {Player1_sim, Player2_sim} = Player_sims,
             {Pos1, Pos2} = Pos,

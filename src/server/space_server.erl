@@ -33,7 +33,7 @@ lobby(Users) ->
             From ! {maps:keys(Users), lobby},
             lobby(Users);
         {unready, Username, User} ->
-            io:format("user entered ~p ~n", [Username]),
+            io:format("user unready ~p ~n", [Username]),
             lobby(Users#{Username => {unready, User}});
         {ready, Username, User} ->
             io:format("user ready ~p ~n", [Username]),
@@ -177,13 +177,21 @@ game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim) ->
         %Recebe o jogador perdedor
         {abort, Player} ->
             case Player of
+                p1 -> 
+                    WinnerUsername = SndUsername, LoserUsername = FstUsername,
+                    WinnerFrom = FromSnd, LoserFrom = FromFst;
+                p2 -> 
+                    WinnerUsername = FstUsername, LoserUsername = SndUsername,
+                    WinnerFrom = FromFst, LoserFrom = FromSnd;
                 ToFst -> 
-                    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(SndUsername, FstUsername),
-                    end_game(FromSnd,WinnerLevel,FromFst,LoserLevel);
+                    WinnerUsername = SndUsername, LoserUsername = FstUsername,
+                    WinnerFrom = FromSnd, LoserFrom = FromFst;
                 ToSnd ->
-                    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(FstUsername, SndUsername),
-                    end_game(FromFst, WinnerLevel, FromSnd, LoserLevel)
+                    WinnerUsername = FstUsername, LoserUsername = SndUsername,
+                    WinnerFrom = FromFst, LoserFrom = FromSnd
             end,
+            {ok, WinnerLevel, LoserLevel} = file_manager:end_game(WinnerUsername, LoserUsername),
+            end_game(WinnerFrom,WinnerLevel,LoserFrom,LoserLevel),
             GameSim ! {stop, self()}
             %pontuar o outro jogador
             %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
