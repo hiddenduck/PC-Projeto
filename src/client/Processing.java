@@ -263,12 +263,11 @@ private void game() throws IOException{
       fill(triple.floats[0], triple.floats[1], triple.floats[2]);
       rect(box.floats[0], box.floats[1], 1, 1);
     }
-
-    /*
+    
     if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
       this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
     }
-     */
+
   }
 }
 
@@ -407,7 +406,7 @@ public void draw(){
             this.isReady = !this.isReady;
         } else if(mouseX > width*0.9f && mouseX < width*0.9f + width*0.05f && mouseY > height*0.9f && mouseY < height*0.9f + height*0.05f){
           try{
-            this.connectionManager.send("close"+":"+password.getText(), Boolean.toString(!this.isReady));
+            this.connectionManager.send("close",password.getText());
           } catch (IOException e){
             e.printStackTrace();
           }
@@ -435,6 +434,7 @@ public void draw(){
         case ('w') -> this.keysPressed[1] = true;
         case ('d') -> this.keysPressed[2] = true;
       }
+      /*
       if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
         try {
           this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
@@ -442,6 +442,7 @@ public void draw(){
           e.printStackTrace();
         }
       }
+       */
     }else{
       if(this.user.active){
         this.user.keyPressed(key);
