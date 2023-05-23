@@ -300,7 +300,8 @@ user_ready(Sock, Game, Username) ->
             lobby ! {game, Username, self()},
             %game:start
             gen_tcp:send(Sock, "game:s\n"),
-            FromSim = spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username, self()) end),
+            ToSim = self(),
+            FromSim = spawn(fun() -> player_fromsim(Sock, Game, Simulation, Username, ToSim) end),
             Game ! {ok, FromSim, self()},
             player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp, _, Data} ->
@@ -344,8 +345,8 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     io:format("player_from\n"),
     receive
         {victory, Level, Game} -> 
-            io:format("pogv\n"),
             ToSim ! {abort, self()},
+            io:format("pogv\n"),
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
         {defeat, Level, Game} -> 
             ToSim ! {abort, self()},
@@ -354,8 +355,8 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
             io:format("player_from_after\n"),
             receive
                 {victory, Level, Game} -> 
-                    io:format("pogv\n"),
                     ToSim ! {abort, self()},
+                    io:format("pogv\n"),
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
                 {defeat, Level, Game} -> 
                     ToSim ! {abort, self()},
