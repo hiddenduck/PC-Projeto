@@ -201,10 +201,6 @@ private void waitingMenu(){
 }
 
 private void game() throws IOException{
-  background(this.menuImage);
-  fill(119,136,153);
-  rect(width*0.1f,height*0.1f, 600, 600);
-
   GameState gameDraw;
   this.gameState.lrw.writeLock().lock();
   try {
@@ -215,19 +211,26 @@ private void game() throws IOException{
 
   String[] statusArg = gameDraw.gameStatus.split(":", 2);
   if(Objects.equals(statusArg[0], "w")) {
+    background(this.menuImage);
     textSize(width*0.1f);
+    fill(255,255,0);
     text("Victory", width * 0.5f, height * 0.5f);
     this.isInGame = false;
     this.level = Integer.parseInt(statusArg[1]);
     fill(206, 235, 251);
     triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   } else if(Objects.equals(statusArg[0], "l")){
+    background(this.menuImage);
     textSize(width*0.1f);
+    fill(255,0,0);
     text("Defeat", width*0.5f, height*0.5f);
     this.isInGame = false;
     fill(206, 235, 251);
     triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   } else {
+    background(this.menuImage);
+    fill(119,136,153);
+    rect(width*0.1f,height*0.1f, 600, 600);
     fill(46, 123, 238);
     ellipse(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
     pushMatrix();
@@ -281,6 +284,7 @@ public void draw(){
                          triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
                          triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
            this.menuImage = loadImage("images/space2.jpg");
+           this.isReady = false;
            this.menu = "waitingMenu";
          }
        }

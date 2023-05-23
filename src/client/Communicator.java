@@ -45,23 +45,26 @@ class CommunicatorBox extends Communicator{
     }
 
     public void run(){
-        try {
-            String box = this.connectionManager.receive("box");
-            String[] args = box.split(":", 4);
-            this.gameState.lrw.readLock().lock();
+        String box = null;
+        do {
             try {
-                if (Objects.equals(args[0], "+"))
-                    this.gameState.putBox(new Triple(Float.parseFloat(args[1]), Float.parseFloat(args[2])
-                            , args[3].charAt(0)));
-                else
-                    this.gameState.removeBox(new Triple(Float.parseFloat(args[1]), Float.parseFloat(args[2])
-                            , args[3].charAt(0)));
-            } finally {
-                this.gameState.lrw.readLock().unlock();
+                box = this.connectionManager.receive("box");
+                String[] args = box.split(":", 4);
+                this.gameState.lrw.readLock().lock();
+                try {
+                    if (Objects.equals(args[0], "+"))
+                        this.gameState.putBox(new Triple(Float.parseFloat(args[1]), Float.parseFloat(args[2])
+                                , args[3].charAt(0)));
+                    else
+                        this.gameState.removeBox(new Triple(Float.parseFloat(args[1]), Float.parseFloat(args[2])
+                                , args[3].charAt(0)));
+                } finally {
+                    this.gameState.lrw.readLock().unlock();
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        } while (box != null);
     }
 }
 
@@ -74,7 +77,6 @@ class CommunicatorPoint extends Communicator{
     public void run(){
         try {
             String point = this.connectionManager.receive("points");
-            System.out.println(point);
             String[] points = point.split(":", 2);
             this.gameState.lrw.readLock().lock();
             try {
@@ -94,16 +96,19 @@ class CommunicatorGame extends Communicator{
     }
 
     public void run(){
-        try {
-            String point = this.connectionManager.receive("game");
-            this.gameState.lrw.readLock().lock();
+        String game = null;
+        do {
             try {
-                this.gameState.setGameStatus(point);
-            } finally {
-                this.gameState.lrw.readLock().unlock();
+                game = this.connectionManager.receive("game");
+                this.gameState.lrw.readLock().lock();
+                try {
+                    this.gameState.setGameStatus(game);
+                } finally {
+                    this.gameState.lrw.readLock().unlock();
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        } while (game != null);
     }
 }
