@@ -237,20 +237,23 @@ private void game() throws IOException{
     background(this.menuImage);
     fill(119,136,153);
     rect(width*0.1f,height*0.1f, 600, 600);
-    pushMatrix();
+
+    strokeWeight(6);
     fill(0);
+    pushMatrix();
     translate(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY);
     rotate(gameDraw.alfa);
-    line(0,0, 0, 10);
+    line(0,0, 0, 15);
     popMatrix();
-    fill(255, 16, 240);
-    ellipse(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
     pushMatrix();
-    fill(0);
     translate(width*0.1f + gameDraw.enemyPosX, height*0.1f + gameDraw.enemyPosY);
     rotate(gameDraw.enemyAlfa);
-    line(0,0, 0, 10);
+    line(0,0, 0, 15);
     popMatrix();
+    strokeWeight(0);
+
+    fill(255, 16, 240);
+    ellipse(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
     fill(251, 255, 22);
     ellipse(width*0.1f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 20, 20);
 
