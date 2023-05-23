@@ -201,6 +201,8 @@ private void waitingMenu(){
   if(Objects.equals(this.gameState.gameStatus, "s")) {
     this.menuImage = loadImage("images/space3.jpg");
     this.menu = "game";
+    this.gameState.point = "0";
+    this.gameState.enemyPoint = "0";
     this.isInGame = true;
   }
   strokeWeight(0);
