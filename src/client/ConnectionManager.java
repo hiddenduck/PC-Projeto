@@ -26,6 +26,7 @@ public class ConnectionManager implements AutoCloseable{
         this.typeMap.put("login", new LinkedList<>());
         this.typeMap.put("logout", new LinkedList<>());
         this.typeMap.put("ready", new LinkedList<>());
+        this.typeMap.put("close", new LinkedList<>());
     }
 
     private ConnectionManager(BufferedReader input, PrintWriter output, Socket socket){
@@ -73,9 +74,12 @@ public class ConnectionManager implements AutoCloseable{
     }
 
     public void close() throws IOException, InterruptedException{
+        for(Queue<String> queue: typeMap.values()){
+            queue.add(null);
+        }
         this.socket.close();
+        this.input.close();
+        this.output.close();
         //this.reader.join();
-        //this.input.close();
-
     }
 }

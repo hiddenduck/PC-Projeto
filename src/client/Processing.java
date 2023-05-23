@@ -179,6 +179,12 @@ private void waitingMenu(){
   fill(188, 255, 18);
   text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
   text("Level: " + this.level,width*0.45f,height*0.2f);
+
+  strokeWeight(0);
+  fill(255,69,0);
+  textSize(width*0.02f);
+  text("Delete", width*0.92f, height*0.885f);
+  rect(width*0.9f, height*0.9f, width*0.05f, height*0.05f);
   textSize(width*0.08f);
   if(isReady){
     strokeWeight(8);
@@ -295,6 +301,18 @@ public void draw(){
         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           this.menu = "logRegMenu";
           this.registerMenu = true;
+        } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
+          try {
+            this.connectionManager.close();
+            /*
+            for (Communicator communicator : this.communicators) {
+              communicator.join();
+            }
+            */
+          } catch (java.io.IOException|java.lang.InterruptedException e){
+            e.printStackTrace();
+          }
+          exit();
         }
       } else if(Objects.equals(this.menu, "logRegMenu")){
         this.user.select(mouseX, mouseY);
@@ -367,7 +385,7 @@ public void draw(){
             this.menu = "startMenu";
           }
         }
-        if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           try{
             this.connectionManager.send("ready", Boolean.toString(!this.isReady));
           } catch (IOException e){
@@ -380,7 +398,25 @@ public void draw(){
           }
           if(Objects.equals(this.message, "ok"))
             this.isReady = !this.isReady;
-        }
+        } else if(mouseX > width*0.9f && mouseX < width*0.9f + width*0.05f && mouseY > height*0.9f && mouseY < height*0.9f + height*0.05f){
+          try{
+            this.connectionManager.send("close"+":"+password.getText(), Boolean.toString(!this.isReady));
+          } catch (IOException e){
+            e.printStackTrace();
+          }
+          try{
+            this.message = this.connectionManager.receive("close");
+          } catch (IOException|InterruptedException e){
+            e.printStackTrace();
+          }
+          if(Objects.equals(this.message, "ok")){
+            this.message = "";
+            this.user.reset();
+            this.password.reset();
+            this.menuImage = loadImage("images/space.jpg");
+            this.menu = "startMenu";
+          }
+         }
       }
     }
   }
