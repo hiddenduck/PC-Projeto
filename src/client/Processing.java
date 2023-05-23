@@ -143,7 +143,7 @@ private void startMenu(){
   rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
   fill(206, 235, 251);
   textSize(width*0.05f);
-  text("Exit",width*0.5f,height*0.65f); // Botão não funcional ainda
+  text("Exit",width*0.5f,height*0.65f);
   fill(112,128,144);
   rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
 }
@@ -237,18 +237,22 @@ private void game() throws IOException{
     background(this.menuImage);
     fill(119,136,153);
     rect(width*0.1f,height*0.1f, 600, 600);
-    fill(46, 123, 238);
+    pushMatrix();
+    fill(0);
+    translate(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY);
+    rotate(gameDraw.alfa);
+    line(0,0, 0, 10);
+    popMatrix();
+    fill(255, 16, 240);
     ellipse(width*0.1f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
     pushMatrix();
-    rotate(gameDraw.alfa);
-    line(width*0.1f + gameDraw.posX, height*0.1f+ gameDraw.posY, width*0.1f + gameDraw.posX, height*0.1f+ gameDraw.posY + 8f);
-    popMatrix();
-    fill(238, 46, 59);
-    ellipse(width*0.1f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 20, 20);
-    pushMatrix();
+    fill(0);
+    translate(width*0.1f + gameDraw.enemyPosX, height*0.1f + gameDraw.enemyPosY);
     rotate(gameDraw.enemyAlfa);
-    line(width*0.1f+ gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, width*0.1f+ gameDraw.enemyPosX, height*0.1f+gameDraw.enemyPosY + 8f);
+    line(0,0, 0, 10);
     popMatrix();
+    fill(251, 255, 22);
+    ellipse(width*0.1f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 20, 20);
 
     Triple triple;
     for (Triple box : gameDraw.boxes) {
