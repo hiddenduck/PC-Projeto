@@ -51,7 +51,7 @@ new_pos({X, Y}, Sim) ->
     receive
         State->
             {{Vx, Vy}, Alfa, _} = State,
-            io:format(State),
+            io:format("~p\n", [State]),
             {X + Vx, Y + Vy, Alfa}
     end.
 
@@ -158,6 +158,7 @@ simulator(PlayerState, Flag) ->
         stop -> 
             ok;
         speed_up when Flag band 1 == 0 ->
+            io:format("vroom received, over\n"),
             NewPlayerState =
                 {{Vx + Accel * math:cos(Alfa), Vy + Accel * math:sin(Alfa)}, Alfa, {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 1);
