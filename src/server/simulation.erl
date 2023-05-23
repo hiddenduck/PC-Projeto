@@ -52,7 +52,7 @@ ticker(GameSim) ->
 new_pos({X, Y}, Sim) ->
     Sim ! {return_state, self()},
     receive
-        State->
+        {State, Sim}->
             {{Vx, Vy}, Alfa, _} = State,
             %io:format("~p\n", [State]),
             {X + Vx, Y + Vy, Alfa}
@@ -71,6 +71,7 @@ timer(GameSim) ->
 %colison of players and updates deltas from Powerups
 game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
     receive
+
         timeout when P1 /= P2 -> 
             %io:format("tick tock\n"),
             {Player1_sim, Player2_sim} = Player_sims,
@@ -187,7 +188,7 @@ simulator(PlayerState, Flag) ->
                 reset_param ->
                     simulator({{0, 0}, 0, {1, 1}}, Flag); %TODO define starting values
                 {return_state, From} ->
-                    From ! PlayerState,
+                    From ! {PlayerState, self()},
                     simulator(PlayerState, 0)
             end
     end.
@@ -216,7 +217,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = 20,%TODO tune
-    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1) < (Alfa2 - math:pi() / 2)),
+    GuardCol = colision(X1, Y1, X2, Y2, Radius),% and (abs(Alfa1) < (Alfa2 - math:pi() / 2)),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->
