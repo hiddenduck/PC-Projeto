@@ -34,17 +34,18 @@ lobby(Users) ->
             lobby(Users);
         {unready, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
-            lobby(Users#{Username => unready});
+            lobby(Users#{Username => {unready, User}});
         {ready, Username, User} ->
             io:format("user ready ~p ~n", [Username]),
-            lobby(Users#{Username => ready});
+            lobby(Users#{Username => {ready, User}});
         {game, Username, User} ->
             io:format("user game ~p ~n", [Username]),
-            lobby(Users#{Username => game});
-        {leave, Username, User} ->
+            lobby(Users#{Username => {game, User}});
+        {leave, Username} ->
             io:format("user left ~p ~n", [Username]),
             lobby(maps:remove(Username, Users));
-        stop -> todo
+        stop -> 
+            lists:map(fun({_, Pid})-> Pid ! stop end, maps:values(Users))
     end.  
 
 %Gestor dos jogos
