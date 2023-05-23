@@ -1,5 +1,5 @@
 -module(space_server).
--export([start/1, stop/0, abort_game/2, positions/4, boxes/4, score/4, online/0]). % server:start(1234)
+-export([start/1, stop/0, abort_game/2, positions/4, boxes/4, score/4, golden_point/1, online/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
 -define(GAMETIME, 120000).
@@ -135,6 +135,9 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
 
 %O Controller é a quem é enviada a mensagem (Controlador do jogo do lado do servidor)
 
+golden_point(Controller) ->
+    Controller ! golden.
+
 %Termina o jogo graciosamente, dado um perdedor
 abort_game(Controller, Loser) ->
     Controller ! {abort, Loser}.
@@ -157,6 +160,9 @@ score(FstPoints, SndPoints, Controller, Game) ->
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
 game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim) -> 
     receive
+        golden ->
+            FromFst ! {golden, self()},
+            FromSnd ! {golden, self()};
         stop ->
             end_game(FromFst, -1, FromSnd, -1);
         {positions, FstPositions, SndPositions, _} -> 
@@ -371,6 +377,9 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
                 {defeat, Level, Game} -> 
                     ToSim ! {abort, self()},
                     gen_tcp:send(Sock, "game:l\n");
+                {golden, Game} -> 
+                    gen_tcp:send(Sock, "game:g\n"),
+                player_fromsim(Sock, Game, Simulation, Username, ToSim);
                 {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
