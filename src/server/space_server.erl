@@ -225,7 +225,7 @@ main_menu(Sock) ->
                     if Bool -> 
                         gen_tcp:send(Sock, "login:user_online\n");
                     true ->
-                        lobby ! {enter, "lobby", Username, self()},
+                        lobby ! {enter, Username, self()},
                         case file_manager:check_level(Username) of
                             {ok, Level} ->  gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
                                             user(Sock, Username);
