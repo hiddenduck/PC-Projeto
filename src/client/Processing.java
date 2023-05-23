@@ -229,7 +229,7 @@ private void game() throws IOException{
     line(gameDraw.posX, gameDraw.posY, gameDraw.posX, gameDraw.posY + 0.5f);
     popMatrix();
     fill(238, 46, 59);
-    ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 1, 1);
+    ellipse(gameDraw.enemyPosX, gameDraw.enemyPosY, 100, 100);
     pushMatrix();
     rotate(gameDraw.enemyAlfa);
     line(gameDraw.enemyPosX, gameDraw.enemyPosY, gameDraw.enemyPosX + 0.5f, gameDraw.enemyPosY + 0.5f);
