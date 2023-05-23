@@ -12,7 +12,7 @@ start_game(Game) ->
     GameSim = spawn(fun() -> Self = self(),
         game(
         Game,
-        {{0.25, 0.5}, {0.25, 0.5}},
+        {{0.25, 0.5}, {0.75, 0.5}},
         {Player1_sim, Player2_sim},
         [],
         {0, 0},
