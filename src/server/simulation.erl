@@ -22,6 +22,7 @@ start_game(Game) ->
     {Player1_sim, Player2_sim}.
 
 change_speed(PlayerSim) ->
+    io:format("vroom\n"),
     PlayerSim ! speed_up.
 
 change_angle(PlayerSim, Dir) ->
