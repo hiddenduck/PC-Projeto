@@ -30,7 +30,8 @@ online() ->
 lobby(Users) ->
     receive
         {online, From} ->
-            From ! {maps:keys(Users), lobby};
+            From ! {maps:keys(Users), lobby},
+            lobby(Users);
         {enter, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
             lobby(Users#{Username => unready});
