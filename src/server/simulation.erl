@@ -220,7 +220,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = 20,%TODO tune
-    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1) < (Alfa2 - math:pi() / 2)),
+    GuardCol = colision(X1, Y1, X2, Y2, Radius),% and (abs(Alfa1) < (Alfa2 - math:pi() / 2)),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->
