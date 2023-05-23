@@ -12,7 +12,7 @@ start_game(Game) ->
     GameSim = spawn(fun() -> Self = self(),
         game(
         Game,
-        {{1, 0}, {-1, 0}},
+        {{0.25, 0.5}, {0.75, 0.5}},
         {Player1_sim, Player2_sim},
         [],
         {0, 0},
@@ -199,7 +199,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
     lists:map(fun(X) -> check_color(X, Sim) end, HitList).
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
-    Radius = 1,%TODO tune
+    Radius = 0,%TODO tune
     GuardCol = colision(X1, Y1, X2, Y2, Radius), abs(Alfa1) < (Alfa2 - math:pi() / 2),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
