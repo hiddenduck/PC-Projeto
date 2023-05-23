@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.Objects;
 
 public class Communicator extends Thread{
@@ -10,29 +11,31 @@ public class Communicator extends Thread{
     }
 }
 
-class CommunicatorPos extends Communicator{
+class CommunicatorPos extends Communicator {
     private final String enemy;
 
-    public CommunicatorPos(ConnectionManager connectionManager, GameState gameState, String enemy){
+    public CommunicatorPos(ConnectionManager connectionManager, GameState gameState, String enemy) {
         super(connectionManager, gameState);
         this.enemy = enemy;
     }
 
-    public void run(){
-        try {
-            String pos = this.connectionManager.receive("pos"+this.enemy);
-            String[] posArgs = pos.split(":", 3);
-            this.gameState.lrw.readLock().lock();
+    public void run() {
+        String pos = null;
+        do {
             try {
-                System.out.println(posArgs[0] + " " + posArgs[1] + " " + posArgs[2]);
-                this.gameState.putPos(Float.parseFloat(posArgs[0]), Float.parseFloat(posArgs[1]),
-                        Float.parseFloat(posArgs[2]), Objects.equals(this.enemy, "E"));
-            } finally {
-                this.gameState.lrw.readLock().unlock();
+                pos = this.connectionManager.receive("pos" + this.enemy);
+                String[] posArgs = pos.split(":", 3);
+                this.gameState.lrw.readLock().lock();
+                try {
+                    this.gameState.putPos(Float.parseFloat(posArgs[0]), Float.parseFloat(posArgs[1]),
+                            Float.parseFloat(posArgs[2]), Objects.equals(this.enemy, "E"));
+                } finally {
+                    this.gameState.lrw.readLock().unlock();
+                }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+        } while (pos != null);
     }
 }
 

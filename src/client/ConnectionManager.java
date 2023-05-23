@@ -68,6 +68,7 @@ public class ConnectionManager implements AutoCloseable{
         synchronized (typeQueue) {
             while (typeQueue.isEmpty()) {
                 typeQueue.wait();
+                System.out.println("acordei");
             }
         }
         return typeQueue.remove();
