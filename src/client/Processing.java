@@ -237,6 +237,9 @@ private void game() throws IOException{
     background(this.menuImage);
     fill(119,136,153);
     rect(width*0.1f,height*0.1f, 600, 600);
+    textSize(width*0.05f);
+    fill(255);
+    text(gameDraw.point + ":" + gameDraw.enemyPoint, width*0.5f, height*0.05f);
 
     strokeWeight(6);
     fill(0);
@@ -263,7 +266,7 @@ private void game() throws IOException{
       fill(triple.floats[0], triple.floats[1], triple.floats[2]);
       rect(box.floats[0], box.floats[1], 1, 1);
     }
-    
+
     if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
       this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
     }

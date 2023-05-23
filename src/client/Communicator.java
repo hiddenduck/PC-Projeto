@@ -82,7 +82,7 @@ class CommunicatorPoint extends Communicator{
                 String[] points = point.split(":", 2);
                 this.gameState.lrw.readLock().lock();
                 try {
-                    this.gameState.putPoint(Integer.parseInt(points[0]), Integer.parseInt(points[1]));
+                    this.gameState.putPoint(points[0], points[1]);
                 } finally {
                     this.gameState.lrw.readLock().unlock();
                 }
