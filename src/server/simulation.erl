@@ -100,11 +100,13 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
 
             space_server:positions({X1_, Y1_, Alfa1}, {X2_, Y2_, Alfa2}, Controler, self()),
 
-            Boundx = 1,%TODO tune
-            Boundy = 1,%TODO tune
+            Boundx_min = 0,%TODO tune
+            Boundx_max = 700,%TODO tune
+            Boundy_min = 0,%TODO tune
+            Boundy_max = 700,%TODO tune
 
             if % check players in bounds
-                X1_ > Boundx, X1_ < Boundx; Y1_ > Boundy, Y1_ < Boundy ->
+                X1_ > Boundx_min, X1_ < Boundx_max; Y1_ > Boundy_min, Y1_ < Boundy_max ->
                     Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
 
@@ -114,7 +116,7 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                     Ticker ! reset,
 
                     game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
-                X2_ > Boundx, X2_ < Boundx; Y2_ > Boundy, Y2_ < Boundy ->
+                X2_ > Boundx_min, X2_ < Boundx_max; Y2_ > Boundy_min, Y2_ < Boundy_max ->
                     Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
 
@@ -189,7 +191,7 @@ simulator(PlayerState, Flag) ->
                 {change_angvel, Delta} ->
                     simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta}}, Flag);
                 reset_param ->
-                    simulator({{0, 0}, 0, {1, 1}}, Flag); %TODO define starting values
+                    simulator({{0, 0}, 0, {1, 1}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 {return_state, From} ->
                     From ! {PlayerState, self()},
                     simulator(PlayerState, 0)
