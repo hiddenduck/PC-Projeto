@@ -399,7 +399,7 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
             io:format("~p ~p ~p ~n", [Left, Front, Right]),
             if 
                 Left =:= "t", Right =:= "f" -> 
-                    simulation:change_angle(Simulation,1);
+                    simulation:change_angle(Simulation,-1);
                 true -> ok
             end,
             if 
@@ -409,7 +409,7 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
             end,
             if 
                 Left =:= "f", Right =:= "t" -> 
-                    simulation:change_angle(Simulation,-1);
+                    simulation:change_angle(Simulation,1);
                 true -> ok
             end,
             player_tosim(Sock, Game, Simulation, Username, FromSim);
