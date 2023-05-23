@@ -40,7 +40,7 @@ ticker(GameSim) ->
     sleep(1000),
     receive
         {reset, GameSim} -> 
-            sleep(2000) %TODO tune
+            sleep(20000) %TODO tune
     after
         0 ->
             GameSim ! tick
@@ -105,11 +105,15 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                            
                            space_server:positions(Base1, Base2, Controler, self()),
                            space_server:score(P1, P2+1, Controler, self()),
+
+                           Ticker ! reset,
                            
                            game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                        X2_ > Boundx, X2_ < Boundx; Y2_ > Boundy, Y2_ < Boundy ->
                            Player1_sim ! reset_param,
                            Player2_sim ! reset_param,
+                           
+                           Ticker ! reset,
                            
                            space_server:positions(Base1, Base2, Controler, self()),
                            space_server:score(P1 + 1, P2, Controler, self()),
@@ -124,6 +128,8 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                                    space_server:positions(Base1, Base2, Controler, self()),
                                    space_server:score(P1 + 1, P2, Controler, self()),
 
+                                   Ticker ! reset,
+                               
                                    game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                                hit2 ->
                                    Player2_sim ! reset_param,
@@ -131,6 +137,8 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                                    space_server:positions(Base1, Base2, Controler, self()),
                                    space_server:score(P1, P2 + 1, Controler, self()),
 
+                                   Ticker ! reset,
+                           
                                    game(Controler, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                                nohit ->
                                    game(Controler, {{X1_, Y1_},
@@ -208,7 +216,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = 0,%TODO tune
-    GuardCol = colision(X1, Y1, X2, Y2, Radius), abs(Alfa1) < (Alfa2 - math:pi() / 2),
+    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1) < (Alfa2 - math:pi() / 2)),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->
