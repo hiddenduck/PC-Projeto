@@ -52,7 +52,7 @@ ticker(GameSim) ->
 new_pos({X, Y}, Sim) ->
     Sim ! {return_state, self()},
     receive
-        State->
+        {State, Sim}->
             {{Vx, Vy}, Alfa, _} = State,
             %io:format("~p\n", [State]),
             {X + Vx, Y + Vy, Alfa}
@@ -187,7 +187,7 @@ simulator(PlayerState, Flag) ->
                 reset_param ->
                     simulator({{0, 0}, 0, {1, 1}}, Flag); %TODO define starting values
                 {return_state, From} ->
-                    From ! PlayerState,
+                    From ! {PlayerState, self()},
                     simulator(PlayerState, 0)
             end
     end.
