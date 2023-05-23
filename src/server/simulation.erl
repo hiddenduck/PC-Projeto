@@ -164,7 +164,9 @@ simulator(PlayerState, Flag) ->
             simulator(NewPlayerState, Flag bor 1);
         {change_direction, Dir} when Flag band 2 == 0 ->
             NewPlayerState = {{Vx, Vy}, math:fmod(Alfa + Dir * AngVel, 2*math:pi()), {Accel, AngVel}},
-            simulator(NewPlayerState, Flag bor 2)
+            simulator(NewPlayerState, Flag bor 2);
+        _ ->
+            simulator(PlayerState, Flag)
     after
         0 ->
             receive
