@@ -158,18 +158,18 @@ game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}) ->
             end_game(FromFst, -1, FromSnd, -1);
         {positions, FstPositions, SndPositions, _} -> 
             io:format("Positions\n"),
-            positions(FstPositions, SndPositions, ToFst, self()),
-            positions(SndPositions, FstPositions, ToSnd, self()),
+            positions(FstPositions, SndPositions, FromFst, self()),
+            positions(SndPositions, FstPositions, FromSnd, self()),
             game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd});
         {score, FstScore, SndScore, _} -> 
             io:format("Scores\n"),
-            score(FstScore, SndScore, ToFst, self()),
-            score(SndScore, FstScore, ToSnd, self()),
+            score(FstScore, SndScore, FromFst, self()),
+            score(SndScore, FstScore, FromSnd, self()),
             game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd});
         {boxes, Add, Remove, _} ->
             io:format("Boxes\n"), 
-            boxes(Add, Remove, ToFst, self()),
-            boxes(Add, Remove, ToSnd, self()),
+            boxes(Add, Remove, FromFst, self()),
+            boxes(Add, Remove, FromSnd, self()),
             game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd});
         %Recebe o jogador perdedor
         {abort, Player} ->
