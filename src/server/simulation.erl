@@ -22,7 +22,7 @@ start_game(Game) ->
     {Player1_sim, Player2_sim}.
 
 change_speed(PlayerSim) ->
-    io:format("vroom\n"),
+    io:format("vroom ~p\n", [PlayerSim]),
     PlayerSim ! speed_up.
 
 change_angle(PlayerSim, Dir) ->
@@ -176,10 +176,8 @@ simulator(PlayerState, Flag) ->
                     simulator({{0, 0}, 0, {1, 1}}, Flag); %TODO define starting values
                 {return_state, From} ->
                     From ! PlayerState,
-                    simulator(PlayerState, 0);
-                _ ->
-                    simulator(PlayerState, Flag)
-                    end
+                    simulator(PlayerState, 0)
+            end
     end.
 
 colision(X1, Y1, X2, Y2, Radius) ->
