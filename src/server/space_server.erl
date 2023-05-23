@@ -253,12 +253,11 @@ main_menu(Sock) ->
                         end
                     end;
                 invalid_password ->
-                    gen_tcp:send(Sock, "login:invalid_password\n"),
-                    main_menu(Sock);
+                    gen_tcp:send(Sock, "login:invalid_password\n");
                 _ ->
-                    gen_tcp:send(Sock, "login:unknown_username\n"),
-                    main_menu(Sock)
-            end;
+                    gen_tcp:send(Sock, "login:unknown_username\n")
+            end,
+            main_menu(Sock);
         {tcp_error, _, _} -> ok;
         {tcp_closed, _, _} -> ok;
         _ -> gen_tcp:send(Sock, "login:unknown_command\n")
