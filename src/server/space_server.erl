@@ -42,8 +42,8 @@ lobby(Users) ->
             io:format("user game ~p ~n", [Username]),
             lobby(Users#{Username => game});
         {leave, Username, User} ->
-            io:format("user left ~n", []),
-            lobby(Users -- [Username]);
+            io:format("user left ~p ~n", [Username]),
+            lobby(maps:remove(Username, Users));
         stop -> todo
     end.  
 
@@ -346,7 +346,6 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     receive
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
-            io:format("pogv\n"),
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
         {defeat, Level, Game} -> 
             ToSim ! {abort, self()},
@@ -356,7 +355,6 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
             receive
                 {victory, Level, Game} -> 
                     ToSim ! {abort, self()},
-                    io:format("pogv\n"),
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
                 {defeat, Level, Game} -> 
                     ToSim ! {abort, self()},
@@ -417,9 +415,11 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
             end,
             player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp_closed, _} -> 
-            abort_game(Game, self());
+            abort_game(Game, self()),
+            lobby ! {leave, Username, self()};
             
         {tcp_error, _, _} -> 
-            abort_game(Game, self())
+            abort_game(Game, self()),
+            lobby ! {leave, Username, self()}
 
     end.
