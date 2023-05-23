@@ -37,7 +37,6 @@ sleep(T) ->
     end.
 
 ticker(GameSim) ->
-    sleep(100),
     receive
         stop ->
             ok;
@@ -45,7 +44,7 @@ ticker(GameSim) ->
             sleep(20000), %TODO tune
             ticker(GameSim)
     after
-        0 ->
+        100 ->
             GameSim ! tick,
             ticker(GameSim)
     end.
