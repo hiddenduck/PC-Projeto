@@ -49,7 +49,9 @@ ticker(GameSim) ->
 new_pos({X, Y}, Sim) ->
     Sim ! {return_state, self()},
     receive
-        {{Vx, Vy}, Alfa, _} ->
+        State->
+            {{Vx, Vy}, Alfa, _} = State,
+            io:format(State),
             {X + Vx, Y + Vy, Alfa}
     end.
 
