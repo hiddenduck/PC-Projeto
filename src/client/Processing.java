@@ -219,10 +219,14 @@ private void game() throws IOException{
     text("Victory", width * 0.5f, height * 0.5f);
     this.isInGame = false;
     this.level = Integer.parseInt(statusArg[1]);
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   } else if(Objects.equals(statusArg[0], "l")){
     textSize(width*0.1f);
     text("Defeat", width*0.5f, height*0.5f);
     this.isInGame = false;
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   } else {
     fill(46, 123, 238);
     ellipse(gameDraw.posX, gameDraw.posY, 100, 100);
@@ -271,7 +275,16 @@ public void draw(){
 
   public void mousePressed(){
     if(!this.isInGame){
-      if(Objects.equals(this.menu, "startMenu")){
+       if(Objects.equals(this.menu, "game")){
+         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
+                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
+                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
+                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+           this.menuImage = loadImage("images/space2.jpg");
+           this.menu = "waitingMenu";
+         }
+       }
+       else if(Objects.equals(this.menu, "startMenu")){
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
           this.menu = "logRegMenu";
           this.registerMenu = false;
