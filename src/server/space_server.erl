@@ -110,6 +110,7 @@ ready([{FstUsername, FstPlayer}]) ->
 sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
     %Avisar os utilizadores para entrarem no jogo
     {Player1Sim, Player2Sim} = simulation:start_game(self()),
+    io:format("~p ~p ~n", [Player1Sim, Player2Sim]),
     FstPlayer ! {start_game, Player1Sim, self()},
     SndPlayer ! {start_game, Player2Sim, self()},
     receive
