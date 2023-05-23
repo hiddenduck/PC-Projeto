@@ -54,7 +54,7 @@ public class GameState {
     }
 
     public void putPos(float x, float y, float alfa, boolean enemy){
-        if(enemy){
+        if(!enemy){
             this.posX = x;
             this.posY = y;
             this.alfa = alfa;
