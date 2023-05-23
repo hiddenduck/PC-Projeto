@@ -154,10 +154,11 @@ game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
 %in future may be better to make speed and dir have higher priority
 simulator(PlayerState, Flag) ->
     {{Vx, Vy}, Alfa, {Accel, AngVel}} = PlayerState,
+    io:format("simulator!\n"),
     receive
         stop -> 
             ok;
-        speed_up when Flag band 1 == 0 ->
+        speed_up ->
             io:format("vroom received, over\n"),
             NewPlayerState =
                 {{Vx + Accel * math:cos(Alfa), Vy + Accel * math:sin(Alfa)}, Alfa, {Accel, AngVel}},
