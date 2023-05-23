@@ -22,27 +22,28 @@ server(Port) ->
         game_manager ! stop
     end.
 
+online() ->
+    lobby ! {online, self()},
+    receive {Users, lobby} -> Users end.
+
 %Lobby como sala tirada diretamente das salas definidas nas aulas práticas
 lobby(Users) ->
     receive
-        {enter, User} ->
-            io:format("user entered ~p ~n", [User]),
-            lobby(Users#{User => unready});
-        {ready, User} ->
-            io:format("user ready ~p ~n", [User]),
-            lobby(Users#{User => ready});
-        {game, User} ->
-            io:format("user game ~p ~n", [User]),
-            lobby(Users#{User => game});
-        {line, Data} = Msg ->
-            io:format("received  ~p ~n", [Data]),
-            [User ! Msg || User <- Users],
-            lobby(Users);
-        {leave, User} ->
+        {online, From} ->
+            From ! {maps:keys(Users), lobby};
+        {enter, Username, User} ->
+            io:format("user entered ~p ~n", [Username]),
+            lobby(Users#{Username => unready});
+        {ready, Username, User} ->
+            io:format("user ready ~p ~n", [Username]),
+            lobby(Users#{Username => ready});
+        {game, Username, User} ->
+            io:format("user game ~p ~n", [Username]),
+            lobby(Users#{Username => game});
+        {leave, Username, User} ->
             io:format("user left ~n", []),
-            lobby(Users -- [User]);
-        stop -> 
-            [User ! stop || User <- Users]
+            lobby(Users -- [Username]);
+        stop -> todo
     end.  
 
 %Gestor dos jogos
@@ -130,7 +131,7 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
 
 %O Controller é a quem é enviada a mensagem (Controlador do jogo do lado do servidor)
 
-%Termina o jogo graciosamente, dado um vencedor
+%Termina o jogo graciosamente, dado um perdedor
 abort_game(Controller, Loser) ->
     Controller ! {abort, Loser}.
 
@@ -220,12 +221,17 @@ main_menu(Sock) ->
             io:format("~p", [Password]),
             case file_manager:login(Username, Password) of
                 ok ->
-                    lobby ! {enter, "lobby", self()},
-                    case file_manager:check_level(Username) of
-                        {ok, Level} ->  gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
-                                        user(Sock, Username);
-                        {invalid_user, _} -> gen_tcp:send(Sock, "login:invalid_user\n");
-                        _ -> gen_tcp:send(Sock, "login:error\n")
+                    Bool = lists:member(Username, online()),
+                    if Bool -> 
+                        gen_tcp:send(Sock, "login:user_online\n");
+                    true ->
+                        lobby ! {enter, "lobby", Username, self()},
+                        case file_manager:check_level(Username) of
+                            {ok, Level} ->  gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
+                                            user(Sock, Username);
+                            {invalid_user, _} -> gen_tcp:send(Sock, "login:invalid_user\n");
+                            _ -> gen_tcp:send(Sock, "login:error\n")
+                        end
                     end;
                 invalid_password ->
                     gen_tcp:send(Sock, "login:invalid_password\n"),
@@ -247,7 +253,7 @@ user(Sock, Username) ->
         {tcp, _, Data} ->
             case Data of
                 "logout:\n" -> 
-                    lobby ! {leave, self()},
+                    lobby ! {leave, Username, self()},
                     gen_tcp:send(Sock, "logout:ok\n"),
                     main_menu(Sock);
                 "close:" ++ DataN -> 
@@ -255,7 +261,7 @@ user(Sock, Username) ->
                     %Data = lists:droplast(DataN),
                     case file_manager:close_account(Username, Data) of
                         ok ->
-                            lobby ! {leave, self()},
+                            lobby ! {leave, Username, self()},
                             gen_tcp:send(Sock, "close:ok");
 
                         wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
@@ -264,20 +270,20 @@ user(Sock, Username) ->
                 "ready:true\n" ->
                     {ok, Level} = file_manager:check_level(Username),
                     game_manager ! {ready, Level, Username, self()},
-                    lobby ! {ready, self()},
+                    lobby ! {ready, Username, self()},
                     receive 
                         {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok\n"), user_ready(Sock, Game, Username)
                         %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
                     end;
                 "msg:" ++ DataN ->
                     Data = lists:droplast(DataN), 
-                    lobby ! {line, Data},
+                    lobby ! {line, Username, Data},
                     user(Sock, Username)
             end;
         {tcp_closed, _} ->
-            lobby ! {leave, self()};
+            lobby ! {leave, Username, self()};
         {tcp_error, _, _} ->
-            lobby ! {leave, self()};
+            lobby ! {leave, Username, self()};
         stop ->
             gen_tcp:send(Sock, "server:closed\n")
     end.
@@ -290,7 +296,7 @@ unready(Username, Game) ->
 user_ready(Sock, Game, Username) -> 
     receive
         {start_game, Simulation, Game} ->
-            lobby ! {game, self()},
+            lobby ! {game, Username, self()},
             Game ! {ok, self()},
             %game:start
             gen_tcp:send(Sock, "game:s\n"),
@@ -300,7 +306,7 @@ user_ready(Sock, Game, Username) ->
             case Data of
                 "logout:\n" -> 
                     unready(Username, Game),
-                    lobby ! {leave, self()},
+                    lobby ! {leave, Username, self()},
                     gen_tcp:send(Sock, "logout:ok\n"),
                     main_menu(Sock);
                 "close:" ++ PasswdN -> 
@@ -308,7 +314,7 @@ user_ready(Sock, Game, Username) ->
                     case file_manager:close_account(Username, Passwd) of
                         ok -> 
                             unready(Username, Game),
-                            lobby ! {leave, self()},
+                            lobby ! {leave, Username, self()},
                             gen_tcp:send(Sock, "close:ok\n");
 
                         wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password\n"), user_ready(Sock, Game, Username);
@@ -316,19 +322,19 @@ user_ready(Sock, Game, Username) ->
                     end;
                 "ready:false\n" -> 
                     unready(Username, Game),
-                    lobby ! {ready, self()},
+                    lobby ! {ready, Username, self()},
                     gen_tcp:send(Sock, "ready:ok\n"), user(Sock,  Username);
                 "msg:" ++ DataN -> 
                     Data = lists:droplast(DataN),
-                    lobby ! {line, Data},
+                    lobby ! {line, Username, Data},
                     user_ready(Sock, Game, Username)
             end;
         {tcp_closed, _} ->
             unready(Username, Game),
-            lobby ! {leave, self()};
+            lobby ! {leave, Username, self()};
         {tcp_error, _, _} ->
             unready(Username, Game),
-            lobby ! {leave, self()};
+            lobby ! {leave, Username, self()};
         stop ->
             gen_tcp:send(Sock, "server:closed\n")
     end.
