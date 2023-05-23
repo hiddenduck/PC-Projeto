@@ -32,7 +32,7 @@ lobby(Users) ->
         {online, From} ->
             From ! {maps:keys(Users), lobby},
             lobby(Users);
-        {enter, Username, User} ->
+        {unready, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
             lobby(Users#{Username => unready});
         {ready, Username, User} ->
@@ -226,7 +226,7 @@ main_menu(Sock) ->
                     if Bool -> 
                         gen_tcp:send(Sock, "login:user_online\n");
                     true ->
-                        lobby ! {enter, Username, self()},
+                        lobby ! {unready, Username, self()},
                         case file_manager:check_level(Username) of
                             {ok, Level} ->  gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
                                             user(Sock, Username);
@@ -344,6 +344,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
     io:format("player_from\n"),
     receive
         {victory, Level, Game} -> 
+            io:format("pogv\n"),
             ToSim ! {abort, self()},
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
         {defeat, Level, Game} -> 
@@ -353,6 +354,7 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
             io:format("player_from_after\n"),
             receive
                 {victory, Level, Game} -> 
+                    io:format("pogv\n"),
                     ToSim ! {abort, self()},
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
                 {defeat, Level, Game} -> 
@@ -390,6 +392,7 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
     io:format("player_to\n"),
     receive
         {abort, FromSim} ->
+            io:format("pog\n"),
             lobby ! {unready, Username, self()},
             user(Sock, Username);
         {tcp, _, DataN} -> 
