@@ -12,7 +12,7 @@ stop() -> ?MODULE ! stop.
 %Regista dois processos, um como o lobby e outro como o game_manager, depois torna-se no acceptor
 server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
-    register(lobby, spawn(fun()-> lobby([]) end)),
+    register(lobby, spawn(fun()-> lobby(#{}) end)),
     register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
     spawn(fun() -> file_manager:start() end),
     spawn(fun() -> acceptor(LSock) end),
