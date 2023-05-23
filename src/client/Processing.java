@@ -407,7 +407,7 @@ public void draw(){
             this.isReady = !this.isReady;
         } else if(mouseX > width*0.9f && mouseX < width*0.9f + width*0.05f && mouseY > height*0.9f && mouseY < height*0.9f + height*0.05f){
           try{
-            this.connectionManager.send("close"+":"+password.getText(), Boolean.toString(!this.isReady));
+            this.connectionManager.send("close",password.getText());
           } catch (IOException e){
             e.printStackTrace();
           }
