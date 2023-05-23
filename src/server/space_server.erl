@@ -382,10 +382,6 @@ player_fromsim(Sock, Game, Simulation, Username, ToSim) ->
             end
     end.
 
-%rotate
-%speed_up
-%telogo
-
 %Filho direto do processo utilizador, o FromSim é o outro processo que deve ser terminado no fim 
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
     io:format("player_to\n"),
