@@ -27,7 +27,13 @@ lobby(Users) ->
     receive
         {enter, User} ->
             io:format("user entered ~p ~n", [User]),
-            lobby([User | Users]);
+            lobby(Users#{User => unready});
+        {ready, User} ->
+            io:format("user ready ~p ~n", [User]),
+            lobby(Users#{User => ready});
+        {game, User} ->
+            io:format("user game ~p ~n", [User]),
+            lobby(Users#{User => game});
         {line, Data} = Msg ->
             io:format("received  ~p ~n", [Data]),
             [User ! Msg || User <- Users],
@@ -125,8 +131,8 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
 %O Controller é a quem é enviada a mensagem (Controlador do jogo do lado do servidor)
 
 %Termina o jogo graciosamente, dado um vencedor
-abort_game(Controller, Winner) ->
-    Controller ! {abort, Winner}.
+abort_game(Controller, Loser) ->
+    Controller ! {abort, Loser}.
 
 %Recebe as posições da simulação em dois tuplos
 %{xp,yp,ap}, {xe,ye,ap}
@@ -163,6 +169,7 @@ game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]) ->
             boxes(Add, Remove, FstPlayer, self()),
             boxes(Add, Remove, SndPlayer, self()),
             game([{FstUsername, FstPlayer}, {SndUsername, SndPlayer}]);
+        %Recebe o jogador perdedor
         {abort, Player} ->
             case Player of
                 FstPlayer -> 
@@ -257,11 +264,13 @@ user(Sock, Username) ->
                 "ready:true\n" ->
                     {ok, Level} = file_manager:check_level(Username),
                     game_manager ! {ready, Level, Username, self()},
+                    lobby ! {ready, self()},
                     receive 
                         {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok\n"), user_ready(Sock, Game, Username)
                         %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
                     end;
-                _ -> 
+                "msg:" ++ DataN ->
+                    Data = lists:droplast(DataN), 
                     lobby ! {line, Data},
                     user(Sock, Username)
             end;
@@ -281,7 +290,7 @@ unready(Username, Game) ->
 user_ready(Sock, Game, Username) -> 
     receive
         {start_game, Simulation, Game} ->
-            lobby ! {leave, self()},
+            lobby ! {game, self()},
             Game ! {ok, self()},
             %game:start
             gen_tcp:send(Sock, "game:s\n"),
@@ -307,8 +316,10 @@ user_ready(Sock, Game, Username) ->
                     end;
                 "ready:false\n" -> 
                     unready(Username, Game),
+                    lobby ! {ready, self()},
                     gen_tcp:send(Sock, "ready:ok\n"), user(Sock,  Username);
-                "msg:" ++ Data -> 
+                "msg:" ++ DataN -> 
+                    Data = lists:droplast(DataN),
                     lobby ! {line, Data},
                     user_ready(Sock, Game, Username)
             end;
@@ -391,9 +402,8 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
                 simulation:change_angle(Simulation,-1)
             end,
             player_tosim(Sock, Game, Simulation, Username, FromSim);
-        {tcp_closed, _} -> ok;
-        {tcp_error, _, _} -> ok;
-        Wat -> 
-            io:format("~p", Wat),
-            player_tosim(Sock, Game, Simulation, Username, FromSim)
+        {tcp_closed, _} -> 
+            Game ! {abort, self()};
+        {tcp_error, _, _} -> 
+            Game ! {abort, self()}
     end.
