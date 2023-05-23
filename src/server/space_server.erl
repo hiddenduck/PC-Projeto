@@ -1,5 +1,5 @@
 -module(space_server).
--export([start/1, stop/0, abort_game/2, positions/4, boxes/4, score/4]). % server:start(1234)
+-export([start/1, stop/0, abort_game/2, positions/4, boxes/4, score/4, online/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
 -define(GAMETIME, 120000).
@@ -327,7 +327,7 @@ user_ready(Sock, Game, Username) ->
                     end;
                 "ready:false\n" -> 
                     unready(Username, Game),
-                    lobby ! {ready, Username, self()},
+                    lobby ! {unready, Username, self()},
                     gen_tcp:send(Sock, "ready:ok\n"), user(Sock,  Username);
                 "msg:" ++ DataN -> 
                     Data = lists:droplast(DataN),
