@@ -75,7 +75,8 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
             Player2_sim ! stop,
             ok;
         timeout when P1 == P2 ->
-            space_server:golden_point(Controller);
+            space_server:golden_point(Controller),
+            game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker);
         timeout when P1 /= P2 -> 
             %io:format("tick tock\n"),
             {Player1_sim, Player2_sim} = Player_sims,
