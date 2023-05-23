@@ -64,6 +64,7 @@ timer(GameSim) ->
 game(Controler, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
     receive
         tick ->
+            io:format("tick tock\n"),
             receive
                 timeout when P1 /= P2 -> 
                     {Player1_sim, Player2_sim} = Player_sims,
