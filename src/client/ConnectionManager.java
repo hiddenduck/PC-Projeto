@@ -70,6 +70,7 @@ public class ConnectionManager implements AutoCloseable{
                 typeQueue.wait();
             }
         }
+        //houve um erro estranho com o typeQueue que já não existia
         return typeQueue.remove();
     }
 

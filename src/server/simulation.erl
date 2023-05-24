@@ -207,7 +207,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
 %TODO é preciso transformar este primeiro par numa lista para cada um dos power_ups
 %depois pode-se reutilizar a função para spawnar os power_ups se tivermos em conta os jogadores
 get_random_pos(Positions, {Boundx_max, Boundy_max}) ->
-    Radius = ?RADIUS * 4,
+    Radius = ?RADIUS * 3,
     {NewPosX, NewPosY} = {rand:uniform(Boundx_max-2*?RADIUS-2)+?RADIUS+1,rand:uniform(Boundy_max-2*?RADIUS-2)+?RADIUS + 1},
     Bool = lists:any(fun({X,Y,_}) -> colision(X, Y, NewPosX, NewPosY, Radius) end, Positions), 
     if
@@ -282,7 +282,8 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = ?RADIUS * 2,%TODO tune
-    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1 - Alfa2) < math:pi()/2),
+    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1) - abs(Alfa2) < math:pi()/2),
+    io:format("~w ~w ~w \n", [colision(X1, Y1, X2, Y2, Radius), Alfa1, Alfa2]),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->

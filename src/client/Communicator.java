@@ -57,6 +57,7 @@ class CommunicatorBox extends Communicator{
                     String[] coords = new String[3];
                     StringBuilder temp = new StringBuilder();
                     boolean minus = true;
+                    System.out.println(box);
                     if(box.charAt(0)=='+'){
                         for(i=2; i<box.length() && box.charAt(i)!='-'; i++){
                             if(box.charAt(i)!=':'){
