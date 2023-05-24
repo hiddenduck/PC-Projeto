@@ -440,18 +440,15 @@ player_tosim(Sock, Game, Simulation, Username, FromSim) ->
             ["move", Left, Front, Right] = string:split(Data, ":", all),
             %io:format("~p ~p ~p ~n", [Left, Front, Right]),
             if 
-                Left =:= "t", Right =:= "f" -> 
+                Left =:= "t" -> 
                     simulation:change_angle(Simulation,-1);
+                Right =:= "t" -> 
+                    simulation:change_angle(Simulation,1);
                 true -> ok
             end,
             if 
                 Front =:= "t" -> 
                     simulation:change_speed(Simulation);
-                true -> ok
-            end,
-            if 
-                Left =:= "f", Right =:= "t" -> 
-                    simulation:change_angle(Simulation,1);
                 true -> ok
             end,
             player_tosim(Sock, Game, Simulation, Username, FromSim);
