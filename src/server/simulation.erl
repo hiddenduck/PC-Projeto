@@ -112,7 +112,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
             Boundy_min = 0,%TODO tune
             Boundy_max = 700,%TODO tune
             
-
+            %Isto tudo pode estar dentro de uma função que devolve Powerups
             Power = (rand:uniform()) * 100,
             if Power =< ?POWER_CHANCE ->
                 C = case rand:uniform(3) of
@@ -127,12 +127,12 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
                 true -> AddPowerups = OldPowerups, Add = []
             end,
             Remove = [update_deltas({X1_, Y1_}, AddPowerups, Player1_sim) | update_deltas({X2_, Y2_}, AddPowerups, Player2_sim)],
-            Powerups = AddPowerups -- Remove,
-            
             if 
                 Add =:= []; Remove =:= [] -> ok;
                 true -> space_server:boxes(Add, Remove, Controller, self())
             end,
+            Powerups = AddPowerups -- Remove,
+            
 
             if % check players in bounds
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
