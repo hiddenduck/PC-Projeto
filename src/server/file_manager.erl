@@ -21,10 +21,12 @@
 start() ->
 	%{error, enoent} quando não existe o ficheiro
 	case file:read_file("passwords") of
+		{error, enoent} -> file:open("passwords", [write, binary]), Passwords = #{};
 		{ok, <<>>} -> Passwords = #{};
 		{ok, PassBin} -> Passwords = erlang:binary_to_term(PassBin)
 	end,
 	case file:read_file("levels") of
+		{error, enoent} -> file:open("levels", [write, binary]), Levels = #{};
 		{ok, <<>>} -> Levels = #{};
 		{ok, LevelsBin} -> Levels = erlang:binary_to_term(LevelsBin)
 	end,
@@ -99,12 +101,14 @@ handle(Request, Map) ->
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
 					{ok, maps:remove(Username, Map)};
-				{ok, _} ->
+				{ok, Data} ->
+					io:format("~p ~p\n", [Passwd, Data]),
 					{wrong_password, Map};
 				_ ->
 					{invalid, Map}
 			end;
 		{login, Username, Passwd} ->
+			io:format("~p ~p\n", [Username, Passwd]),
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
 					{ok, Map};

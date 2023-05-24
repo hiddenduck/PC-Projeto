@@ -228,7 +228,7 @@ main_menu(Sock) ->
     receive
         {tcp, _, "register:" ++ DataN} ->
             Data = lists:droplast(DataN),
-            [Username, Password] = re:split(Data, "[:]"),
+            [Username, Password] = string:split(Data, ":", all),
             case file_manager:create_account(Username, Password) of
                 ok -> gen_tcp:send(Sock, "register:ok\n");
                 user_exists -> gen_tcp:send(Sock, "register:user_exists\n")
@@ -236,7 +236,7 @@ main_menu(Sock) ->
             main_menu(Sock);
         {tcp, _, "login:" ++ DataN} -> 
             Data = lists:droplast(DataN),
-            [Username, Password] = re:split(Data, "[:]"),
+            [Username, Password] = string:split(Data, ":", all),
             io:format("~p", [Password]),
             case file_manager:login(Username, Password) of
                 ok ->
@@ -265,8 +265,8 @@ main_menu(Sock) ->
 
 user(Sock, Username) ->
     receive
-        {line, Data} ->
-            gen_tcp:send(Sock, "text:" ++ Data),
+        {line, Msg} ->
+            gen_tcp:send(Sock, "text:" ++ Msg),
             user(Sock, Username);
         {tcp, _, Data} ->
             case Data of
@@ -274,15 +274,17 @@ user(Sock, Username) ->
                     lobby ! {leave, Username, self()},
                     gen_tcp:send(Sock, "logout:ok\n"),
                     main_menu(Sock);
-                "close:" ++ DataN -> 
-                    Data = lists:droplast(DataN),
+                "close:" ++ PasswdN -> 
+                    Passwd = lists:droplast(PasswdN),
                     %Data = lists:droplast(DataN),
-                    case file_manager:close_account(Username, Data) of
+                    case file_manager:close_account(Username, Passwd) of
                         ok ->
                             lobby ! {leave, Username, self()},
                             gen_tcp:send(Sock, "close:ok");
 
-                        wrong_password -> gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
+                        wrong_password -> 
+                            io:format("wrong\n"),
+                            gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
                         invalid -> gen_tcp:send(Sock, "close:error_invalid\n"), user(Sock, Username)
                     end;
                 "ready:true\n" ->
