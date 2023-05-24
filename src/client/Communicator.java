@@ -54,7 +54,7 @@ class CommunicatorBox extends Communicator{
                 this.gameState.lrw.readLock().lock();
                 try {
                     int i,j=0;
-                    float[] coords = new float[3];
+                    String[] coords = new String[3];
                     StringBuilder temp = new StringBuilder();
                     boolean minus = true;
                     if(box.charAt(0)=='+'){
@@ -62,12 +62,12 @@ class CommunicatorBox extends Communicator{
                             if(box.charAt(i)!=':'){
                                 temp.append(box.charAt(i));
                             }else{
-                                coords[j++] = Float.parseFloat(temp.toString());
+                                coords[j++] = temp.toString();
                                 temp = new StringBuilder();
                             }
                         }
                         j=0;
-                        this.gameState.putBox(new Triple(coords[0], coords[1], coords[2]));
+                        this.gameState.putBox(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                         if(i==box.length()) minus = false;
                     } else i = 1;
                     if(minus) {
@@ -77,10 +77,10 @@ class CommunicatorBox extends Communicator{
                                 temp.append(box.charAt(i));
                             } else {
                                 if(j==2){
-                                    boxes.add(new Triple(coords[0], coords[1], coords[2]));
+                                    boxes.add(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                                     j=0;
                                 } else {
-                                    coords[j++] = Float.parseFloat(temp.toString());
+                                    coords[j++] = temp.toString();
                                     temp = new StringBuilder();
                                 }
                             }
