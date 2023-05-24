@@ -203,6 +203,7 @@ private void waitingMenu(){
     this.menu = "game";
     this.gameState.point = "0";
     this.gameState.enemyPoint = "0";
+    this.gameState.boxes = new HashSet<>();
     this.isInGame = true;
   }
   strokeWeight(0);

@@ -3,6 +3,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 class Triple{
     public float[] floats;
@@ -21,6 +22,15 @@ class Triple{
         this.floats[0] = x;
         this.floats[1] = y;
         this.chars[0] = z;
+    }
+
+    public Triple(float[] floats, char[] chars){
+        this.floats = floats;
+        this.chars = chars;
+    }
+
+    public Triple clone(){
+        return new Triple(this.floats, this.chars);
     }
 }
 
@@ -53,7 +63,7 @@ public class GameState {
         this.point = point;
         this.enemyPoint = enemyPoint;
         this.gameStatus = gameStatus;
-        this.boxes = boxes;
+        this.boxes = boxes.stream().map(Triple::clone).collect(Collectors.toSet());
     }
 
     public void putPos(float x, float y, float alfa, boolean enemy){
