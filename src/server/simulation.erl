@@ -2,6 +2,8 @@
 
 -export([start_game/1, change_speed/1, change_angle/2]).
 
+-define(RADIUS, 10).
+
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
 start_game(Game) ->
@@ -164,8 +166,10 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                     end
             end.
 
+%TODO é preciso transformar este primeiro par numa lista para cada um dos power_ups
+%depois pode-se reutilizar a função para spawnar os power_ups se tivermos em conta os jogadores
 get_random_pos({OtherPlayerX, OtherPlayerY}, {Boundx_max, Boundy_max}) ->
-    Radius = 30,
+    Radius = ?RADIUS * 4,
     {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundy_max+1)-1},
     Bool = colision(OtherPlayerX, OtherPlayerY, NewPosX, NewPosY, Radius),
     if
@@ -238,7 +242,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
     lists:map(fun(X) -> check_color(X, Sim) end, HitList).
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
-    Radius = 20,%TODO tune
+    Radius = ?RADIUS * 2,%TODO tune
     GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1 - Alfa2) < math:pi()/2),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
