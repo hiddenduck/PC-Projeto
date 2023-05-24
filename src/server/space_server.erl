@@ -147,8 +147,8 @@ abort_game(Controller, Loser) ->
 positions(FstPositions, SndPositions, Controller, Game) ->
     Controller ! {positions, FstPositions, SndPositions, Game}.
 
-%Recebe as posições a adicionar e remover das caixas em listas de listas
-%[[x1,y1,color1],[x2,y2,color2]]
+%Recebe as posições a adicionar e remover das caixas em listas de tuplos
+%[{x1,y1,color1},{x2,y2,color2}]
 boxes(Add, Remove, Controller, Game) ->
 
     Controller ! {boxes, Add, Remove, Game}.
@@ -363,7 +363,7 @@ user_ready(Sock, Game, Username) ->
     end.
 
 player_fromsim(Sock, Game, ToSim) ->
-    io:format("player_from\n"),
+    %io:format("player_from\n"),
     receive
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
@@ -392,14 +392,15 @@ player_fromsim(Sock, Game, ToSim) ->
                     player_fromsim(Sock, Game, ToSim);
                 {boxes, Add, Remove, Game} ->
                     %box:+:x:y:color
+                    %box:+:x:y:color:-:x:y:color
                     %box:-:x:y:color
                     %Add e Remove são listas com listas dos elementos 
-                    %[[x1,y1,color1], [x2,y2,color2]]
+                    %[{x1,y1,color1}, {x2,y2,color2}]
                     %io:format("~p ~p ~n", [Add, Remove]),
-                    StrAddList = string:join([lists:concat(["+:", X, ":", Y, ":", C]) || {X,Y,C} <- Add], ":"),
-                    StrRemoveList = string:join([lists:concat(["-:", X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ":"),
-                    %io:format("~p", lists:concat(["box:", string:join([StrAddList | StrRemoveList], ":"), "\n"])),
-                    gen_tcp:send(Sock, lists:concat(["box:", string:join([StrAddList | StrRemoveList], ":"), "\n"])),
+                    StrList = string:join(  [lists:concat(["+:", X, ":", Y, ":", C]) || {X,Y,C} <- Add] ++
+                                            [lists:concat(["-:", X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ":"),
+                    %io:format("~p\n", StrList),
+                    gen_tcp:send(Sock, lists:concat(["box:", StrList, "\n"])),
                     player_fromsim(Sock, Game, ToSim);
                 {score, Player, Enemy, Game} ->
                     gen_tcp:send(Sock, lists:concat(["points:", Player, ":", Enemy, "\n"])),
@@ -409,7 +410,7 @@ player_fromsim(Sock, Game, ToSim) ->
 
 %Filho direto do processo utilizador, o FromSim é o outro processo que deve ser terminado no fim 
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
-    io:format("player_to\n"),
+    %io:format("player_to\n"),
     receive
         {abort, FromSim} ->
             lobby ! {unready, Username, self()},
