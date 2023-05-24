@@ -163,7 +163,8 @@ game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim) ->
     receive
         golden ->
             FromFst ! {golden, self()},
-            FromSnd ! {golden, self()};
+            FromSnd ! {golden, self()},
+            game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim);
         stop ->
             end_game(FromFst, -1, FromSnd, -1);
         {positions, FstPositions, SndPositions, _} -> 
@@ -362,7 +363,7 @@ user_ready(Sock, Game, Username) ->
     end.
 
 player_fromsim(Sock, Game, ToSim) ->
-    %io:format("player_from\n"),
+    io:format("player_from\n"),
     receive
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
@@ -408,7 +409,7 @@ player_fromsim(Sock, Game, ToSim) ->
 
 %Filho direto do processo utilizador, o FromSim é o outro processo que deve ser terminado no fim 
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
-    %io:format("player_to\n"),
+    io:format("player_to\n"),
     receive
         {abort, FromSim} ->
             lobby ! {unready, Username, self()},
