@@ -150,6 +150,7 @@ positions(FstPositions, SndPositions, Controller, Game) ->
 %Recebe as posições a adicionar e remover das caixas em listas de listas
 %[[x1,y1,color1],[x2,y2,color2]]
 boxes(Add, Remove, Controller, Game) ->
+
     Controller ! {boxes, Add, Remove, Game}.
 
 %Recebe a pontuação de ambos os jogadores
@@ -394,9 +395,10 @@ player_fromsim(Sock, Game, ToSim) ->
                     %Add e Remove são listas com listas dos elementos 
                     %[[x1,y1,color1], [x2,y2,color2]]
                     %io:format("~p ~p ~n", [Add, Remove]),
-                    StrAddList = [string:join(["+" | A], ":") || A <- Add],
-                    StrRemoveList = [string:join(["-" | R], ":") || R <- Remove],
-                    gen_tcp:send(Sock, lists:concat(["box:", string:join(StrAddList, ":"), ":", string:join(StrRemoveList, ":"), "\n"])),
+                    StrAddList = string:join([lists:concat(["+:", X, ":", Y, ":", C]) || {X,Y,C} <- Add], ":"),
+                    StrRemoveList = string:join([lists:concat(["-:", X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ":"),
+                    %io:format("~p", lists:concat(["box:", string:join([StrAddList | StrRemoveList], ":"), "\n"])),
+                    gen_tcp:send(Sock, lists:concat(["box:", string:join([StrAddList | StrRemoveList], ":"), "\n"])),
                     player_fromsim(Sock, Game, ToSim);
                 {score, Player, Enemy, Game} ->
                     gen_tcp:send(Sock, lists:concat(["points:", Player, ":", Enemy, "\n"])),
