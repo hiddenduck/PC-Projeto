@@ -87,8 +87,10 @@ public class GameState {
         this.boxes.add(newBox);
     }
 
-    public void removeBox(Triple oldBox){
-        this.boxes.remove(oldBox);
+    public void removeBoxes(Set<Triple> oldBoxes){
+        for(Triple triple: oldBoxes){
+            this.boxes.remove(triple);
+        }
     }
 
     public void setGameStatus(String s){

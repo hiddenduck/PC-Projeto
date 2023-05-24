@@ -1,5 +1,7 @@
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class Communicator extends Thread{
     public ConnectionManager connectionManager;
@@ -49,15 +51,43 @@ class CommunicatorBox extends Communicator{
         do {
             try {
                 box = this.connectionManager.receive("box");
-                String[] args = box.split(":", 4);
                 this.gameState.lrw.readLock().lock();
                 try {
-                    if (Objects.equals(args[0], "+"))
-                        this.gameState.putBox(new Triple(Float.parseFloat(args[1]), Float.parseFloat(args[2])
-                                , args[3].charAt(0)));
-                    else
-                        this.gameState.removeBox(new Triple(Float.parseFloat(args[1]), Float.parseFloat(args[2])
-                                , args[3].charAt(0)));
+                    int i,j=0;
+                    float[] coords = new float[3];
+                    StringBuilder temp = new StringBuilder();
+                    boolean minus = true;
+                    if(box.charAt(0)=='+'){
+                        for(i=1; i<box.length() && box.charAt(i)!='-'; i++){
+                            if(box.charAt(i)!=':'){
+                                temp.append(box.charAt(i));
+                            }else{
+                                coords[j++] = Float.parseFloat(temp.toString());
+                                temp = new StringBuilder();
+                            }
+                        }
+                        j=0;
+                        this.gameState.putBox(new Triple(coords[0], coords[1], coords[2]));
+                        if(i==box.length()) minus = false;
+                    } else i = 1;
+                    if(minus) {
+                        Set<Triple> boxes = new HashSet<>();
+                        for (; i < box.length(); i++) {
+                            if (box.charAt(i) != ':') {
+                                temp.append(box.charAt(i));
+                            } else {
+                                if(j==2){
+                                    boxes.add(new Triple(coords[0], coords[1], coords[2]));
+                                    j=0;
+                                } else {
+                                    coords[j++] = Float.parseFloat(temp.toString());
+                                    temp = new StringBuilder();
+                                }
+                            }
+                        }
+                        this.gameState.removeBoxes(boxes);
+                    }
+
                 } finally {
                     this.gameState.lrw.readLock().unlock();
                 }
