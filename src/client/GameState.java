@@ -39,10 +39,11 @@ public class GameState {
         this.lrw = new ReentrantReadWriteLock();
         this.point = "0";
         this.enemyPoint = "0";
+        this.boxes = new HashSet<>();
     }
 
     public GameState(float posX, float posY, float enemyPosX, float enemyPosY, float alfa, float enemyAlfa,
-                     String point, String enemyPoint, String gameStatus){
+                     String point, String enemyPoint, String gameStatus, Set<Triple> boxes){
         this.posX = posX;
         this.posY = posY;
         this.enemyPosX = enemyPosX;
@@ -52,7 +53,7 @@ public class GameState {
         this.point = point;
         this.enemyPoint = enemyPoint;
         this.gameStatus = gameStatus;
-        this.boxes = new HashSet<>();
+        this.boxes = boxes;
     }
 
     public void putPos(float x, float y, float alfa, boolean enemy){
