@@ -87,7 +87,7 @@ public class GameState {
 
     public GameState copy(){
         return new GameState(this.posX, this.posY, this.enemyPosX, this.enemyPosY,
-                this.alfa, this.enemyAlfa, this.point, this.enemyPoint, this.gameStatus);
+                this.alfa, this.enemyAlfa, this.point, this.enemyPoint, this.gameStatus, this.boxes);
     }
 
 }
