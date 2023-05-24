@@ -92,8 +92,8 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
 
         tick ->
 
-            Base1 = {100,400},
-            Base2 = {400,400},
+            %Base1 = {100,400},
+            %Base2 = {400,400},
 
             {Player1_sim, Player2_sim} = Player_sims,
             {Pos1, Pos2} = Pos,
@@ -112,7 +112,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
                     Player1_sim ! reset_param,
                     %Player2_sim ! reset_param,
-                    {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                    {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
                     space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
                     space_server:score(P1, P2+1, Controller, self()),
 
@@ -122,7 +122,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                 X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
                     %Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
-                    {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                    {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
                     Ticker ! reset,
 
                     space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
@@ -134,7 +134,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                         hit1 ->
                             Player1_sim ! reset_param,
                             %Player2_sim ! reset_param,
-                            {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                            {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
                             space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
                             space_server:score(P1 + 1, P2, Controller, self()),
 
@@ -143,7 +143,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                             game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                         hit2 ->
                             Player2_sim ! reset_param,
-                            {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                            {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
                     
                             space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
                             space_server:score(P1, P2 + 1, Controller, self()),
