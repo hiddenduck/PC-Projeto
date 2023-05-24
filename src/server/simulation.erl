@@ -111,45 +111,46 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
             if % check players in bounds
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
                     Player1_sim ! reset_param,
-                    Player2_sim ! reset_param,
-
-                    space_server:positions(Base1, Base2, Controller, self()),
+                    %Player2_sim ! reset_param,
+                    {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                    space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
                     space_server:score(P1, P2+1, Controller, self()),
 
                     Ticker ! reset,
 
-                    game(Controller, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
+                    game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                 X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
-                    Player1_sim ! reset_param,
+                    %Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
-
+                    {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
                     Ticker ! reset,
 
-                    space_server:positions(Base1, Base2, Controller, self()),
+                    space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
                     space_server:score(P1 + 1, P2, Controller, self()),
 
-                    game(Controller, {Base1, Base2}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
+                    game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                 true -> % else check_player_colision
                     case check_player_colision(Pos1, Pos2, Alfa1, Alfa2) of
                         hit1 ->
                             Player1_sim ! reset_param,
-                            Player2_sim ! reset_param,
-
-                            space_server:positions(Base1, Base2, Controller, self()),
+                            %Player2_sim ! reset_param,
+                            {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                            space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
                             space_server:score(P1 + 1, P2, Controller, self()),
 
                             Ticker ! reset,
 
-                            game(Controller, {Base1, Base2}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
+                            game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                         hit2 ->
                             Player2_sim ! reset_param,
-
-                            space_server:positions(Base1, Base2, Controller, self()),
+                            {NewPosX, NewPosY} = {rand:uniform(701)-1,rand:uniform(701)-1},
+                    
+                            space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
                             space_server:score(P1, P2 + 1, Controller, self()),
 
                             Ticker ! reset,
 
-                            game(Controller, {Base1, Base2}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
+                            game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                         nohit ->
                             game(Controller, {{X1_, Y1_},
                                              {X2_, Y2_}}, % if no hit call ticker after update_deltas
@@ -194,6 +195,7 @@ simulator(PlayerState, Flag) ->
                 {change_angvel, Delta} ->
                     simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta}}, Flag);
                 reset_param ->
+                    
                     simulator({{0, 0}, 0, {0.25,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 {return_state, From} ->
                     From ! {PlayerState, self()},
