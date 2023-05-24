@@ -381,7 +381,7 @@ player_fromsim(Sock, Game, ToSim) ->
                     gen_tcp:send(Sock, "game:l\n");
                 {golden, Game} -> 
                     gen_tcp:send(Sock, "game:g\n"),
-                player_fromsim(Sock, Game, ToSim);
+                    player_fromsim(Sock, Game, ToSim);
                 {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
                     %pos:x:y:alpha
                     %posE:x:y:alpha
