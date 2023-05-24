@@ -3,14 +3,14 @@
 -export([start_game/1, change_speed/1, change_angle/2]).
 
 -define(RADIUS, 10).
-
+-define(GAME_DURATION, 60000).
 -define(POWER_CHANCE, 5).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
 start_game(Game) ->
-    P1 = {{0, 0}, 0, {0.25,0.125}},
-    P2 = {{0, 0}, 0, {0.25,0.125}},
+    P1 = {{0, 0}, 0, {0.125,0.125}},
+    P2 = {{0, 0}, 3.14159, {0.125,0.125}},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> Self = self(),
@@ -61,7 +61,7 @@ new_pos({X, Y}, Sim) ->
     end.
 
 timer(GameSim) ->
-    sleep(60000),
+    sleep(?GAME_DURATION),
     io:format("times up"),
     GameSim ! timeout.
 
@@ -137,7 +137,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
 
             if % check players in bounds
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
-                    Player1_sim ! reset_param,
+                    Player1_sim ! reset_state,
                     Player2_sim ! reset_param,
                     {NewPosX, NewPosY} = get_random_pos([{X2_, Y2_, Alfa2} | Powerups], {Boundx_max, Boundy_max}),
                     space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
@@ -148,7 +148,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
                     game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                 X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
                     Player1_sim ! reset_param,
-                    Player2_sim ! reset_param,
+                    Player2_sim ! reset_state,
                     {NewPosX, NewPosY} = get_random_pos([{X1_, Y1_, Alfa1} | Powerups], {Boundx_max, Boundy_max}),
                     
                     space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
@@ -161,7 +161,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
                     case check_player_colision(Pos1, Pos2, Alfa1, Alfa2) of
                         hit1 ->
                             Player1_sim ! reset_param,
-                            Player2_sim ! reset_param,
+                            Player2_sim ! reset_state,
                             {NewPosX, NewPosY} = get_random_pos([{X1_, Y1_, Alfa1} | Powerups], {Boundx_max, Boundy_max}),
                             space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
                             space_server:score(P1 + 1, P2, Controller, self()),
@@ -170,7 +170,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
 
                             game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                         hit2 ->
-                            Player1_sim ! reset_param,
+                            Player1_sim ! reset_state,
                             Player2_sim ! reset_param,
                             {NewPosX, NewPosY} = get_random_pos([{X2_, Y2_, Alfa2} | Powerups], {Boundx_max, Boundy_max}),
                     
@@ -234,9 +234,10 @@ simulator(PlayerState, Flag) ->
                     simulator({{Vx, Vy}, Alfa, {Accel + Delta, AngVel}}, Flag);
                 {change_angvel, Delta} ->
                     simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta}}, Flag);
+                reset_state ->
+                    simulator({{0, 0}, 0, {0.125,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 reset_param ->
-                    
-                    simulator({{0, 0}, 0, {0.25,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
+                    simulator({{Vx, Vy}, Alfa, {0.125,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 {return_state, From} ->
                     From ! {PlayerState, self()},
                     simulator(PlayerState, 0)
