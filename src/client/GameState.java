@@ -89,6 +89,7 @@ public class GameState {
 
     public void removeBoxes(Set<Triple> oldBoxes){
         for(Triple triple: oldBoxes){
+            System.out.println(triple);
             this.boxes.remove(triple);
         }
     }

@@ -53,7 +53,7 @@ class CommunicatorBox extends Communicator{
                 box = this.connectionManager.receive("box");
                 this.gameState.lrw.readLock().lock();
                 try {
-                    int i,j=0;
+                    int i = 0, j = 0;
                     String[] coords = new String[3];
                     StringBuilder temp = new StringBuilder();
                     boolean minus = true;
@@ -66,24 +66,35 @@ class CommunicatorBox extends Communicator{
                                 temp = new StringBuilder();
                             }
                         }
+                        coords[j] = temp.toString();
+                        temp = new StringBuilder();
                         j=0;
                         this.gameState.putBox(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                         if(i==box.length()) minus = false;
-                    } else i = 1;
+
+                    }
                     if(minus) {
                         Set<Triple> boxes = new HashSet<>();
-                        for (; i < box.length(); i++) {
+                        //saltar o "-:"
+                        for (i+=2; i < box.length(); i++) {
                             if (box.charAt(i) != ':') {
                                 temp.append(box.charAt(i));
                             } else {
-                                if(j==2){
+                                coords[j++] = temp.toString();
+                                temp = new StringBuilder();
+
+                                if(j==3) {
                                     boxes.add(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                                     j=0;
-                                } else {
-                                    coords[j++] = temp.toString();
-                                    temp = new StringBuilder();
                                 }
                             }
+                        }
+                        coords[j++] = temp.toString();
+                        temp = new StringBuilder();
+                        //este teste é irrelevante porque ele deve ser sempre j==2
+                        if(j==2) {
+                            boxes.add(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
+                            j=0;
                         }
                         this.gameState.removeBoxes(boxes);
                     }
