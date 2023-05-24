@@ -14,7 +14,7 @@ server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
     spawn(fun() -> file_manager:start() end),
     spawn(fun() -> acceptor(LSock) end),
-    register(lobby, spawn(fun()-> lobby(#{}) end)),
+    register(lobby, spawn(fun()-> lobby(#{}, #{}) end)),
     register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
     receive stop -> 
         file_manager:stop(),
@@ -26,24 +26,41 @@ online() ->
     lobby ! {online, self()},
     receive {Users, lobby} -> Users end.
 
-%Lobby como sala tirada diretamente das salas definidas nas aulas práticas
-lobby(Users) ->
+%Lobby como sala tirada diretamente das salas definidas nas aulas prática
+%A chave é o Username porque é necessário para testar quando um utilizador entra
+lobby(Users, WinMap) ->
     receive
+        {top, Number, From} ->
+            From ! {lists:sublist(lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), Number), lobby};
         {online, From} ->
             From ! {maps:keys(Users), lobby},
-            lobby(Users);
+            lobby(Users,WinMap);
+        {win, Username, User} ->
+            io:format("user won ~p ~n", [Username]),
+            case maps:find(Username, WinMap) of
+                {ok, {_, _, OldWins}} -> Wins = OldWins + 1;
+                _ -> Wins = 1
+            end,
+            %ver se o gajo que ganhou fica no top
+            %não mandar para as pessoas a jogar, só unready/ready 
+            %lists:map(fun({_, Pid})-> Pid ! {new_win, Username, Wins} end, maps:values(Users)),
+            lobby(Users#{Username => {unready, User, Wins}}, WinMap#{Username => Wins});
+        {enter, Username, User} ->
+            io:format("user entered ~p ~n", [Username]),
+            %TODO pôr o leaderboard inicial para todos
+            lobby(Users#{Username => {unready, User}}, WinMap);
         {unready, Username, User} ->
             io:format("user unready ~p ~n", [Username]),
-            lobby(Users#{Username => {unready, User}});
+            lobby(Users#{Username => {unready, User}}, WinMap);
         {ready, Username, User} ->
             io:format("user ready ~p ~n", [Username]),
-            lobby(Users#{Username => {ready, User}});
+            lobby(Users#{Username => {ready, User}}, WinMap);
         {game, Username, User} ->
             io:format("user game ~p ~n", [Username]),
-            lobby(Users#{Username => {game, User}});
+            lobby(Users#{Username => {game, User}}, WinMap);
         {leave, Username, User} ->
             io:format("user left ~p ~n", [Username]),
-            lobby(maps:remove(Username, Users));
+            lobby(maps:remove(Username, Users), WinMap);
         stop -> 
             lists:map(fun({_, Pid})-> Pid ! stop end, maps:values(Users)),
             io:format("lobby terminado\n")
@@ -265,42 +282,48 @@ main_menu(Sock) ->
         _ -> gen_tcp:send(Sock, "login:unknown_command\n")
     end.
 
+logout(Username, Sock) ->
+    lobby ! {leave, Username, self()},
+    gen_tcp:send(Sock, "logout:ok\n"),
+    main_menu(Sock).
+
+leaderboard(NumberN, Sock) ->
+    Number = lists:droplast(NumberN),
+    lobby ! {top, Number, self()},
+    receive 
+        {List, lobby} -> 
+            gen_tcp:send(Sock, 
+                lists:foldl(fun({U, W}, Acc) -> lists:concat(Acc, ":", U, "_", W) end, 
+                    "top", List) 
+                ++ "\n") 
+    end.
+
 user(Sock, Username) ->
     receive
-        {line, Msg} ->
-            gen_tcp:send(Sock, "text:" ++ Msg),
+        {tcp, _, "top:" ++ NumberN} ->
+            leaderboard(NumberN, Sock),
             user(Sock, Username);
-        {tcp, _, Data} ->
-            case Data of
-                "logout:\n" -> 
+        {tcp, _, "logout:\n"} ->
+            logout(Username, Sock);
+        {tcp, _, "close:" ++ PasswdN} ->
+            Passwd = lists:droplast(PasswdN),
+            %Data = lists:droplast(DataN),
+            case file_manager:close_account(Username, Passwd) of
+                ok ->
                     lobby ! {leave, Username, self()},
-                    gen_tcp:send(Sock, "logout:ok\n"),
-                    main_menu(Sock);
-                "close:" ++ PasswdN -> 
-                    Passwd = lists:droplast(PasswdN),
-                    %Data = lists:droplast(DataN),
-                    case file_manager:close_account(Username, Passwd) of
-                        ok ->
-                            lobby ! {leave, Username, self()},
-                            gen_tcp:send(Sock, "close:ok");
+                    gen_tcp:send(Sock, "close:ok");
 
-                        wrong_password -> 
-                            io:format("wrong\n"),
-                            gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
-                        invalid -> gen_tcp:send(Sock, "close:error_invalid\n"), user(Sock, Username)
-                    end;
-                "ready:true\n" ->
-                    {ok, Level} = file_manager:check_level(Username),
-                    game_manager ! {ready, Level, Username, self()},
-                    lobby ! {ready, Username, self()},
-                    receive 
-                        {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok\n"), user_ready(Sock, Game, Username)
-                        %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
-                    end;
-                "msg:" ++ DataN ->
-                    Data = lists:droplast(DataN), 
-                    lobby ! {line, Username, Data},
-                    user(Sock, Username)
+                wrong_password -> 
+                    gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
+                invalid -> gen_tcp:send(Sock, "close:error_invalid\n"), user(Sock, Username)
+            end;
+        {tcp, _, "ready:true\n"} ->
+            {ok, Level} = file_manager:check_level(Username),
+            game_manager ! {ready, Level, Username, self()},
+            lobby ! {ready, Username, self()},
+            receive 
+                {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok\n"), user_ready(Sock, Game, Username)
+                %{error_already_ready, game_manager} -> gen_tcp:send(Sock, "game:error_already_ready"), user(Sock, Room, Username)
             end;
         {tcp_closed, _} ->
             lobby ! {leave, Username, self()};
@@ -327,11 +350,12 @@ user_ready(Sock, Game, Username) ->
             player_tosim(Sock, Game, Simulation, Username, FromSim);
         {tcp, _, Data} ->
             case Data of
+                "top:" ++ NumberN ->
+                    leaderboard(NumberN, Sock),
+                    user_ready(Sock, Game, Username);
                 "logout:\n" -> 
                     unready(Username, Game),
-                    lobby ! {leave, Username, self()},
-                    gen_tcp:send(Sock, "logout:ok\n"),
-                    main_menu(Sock);
+                    logout(Username, Sock);
                 "close:" ++ PasswdN -> 
                     Passwd = lists:droplast(PasswdN),
                     case file_manager:close_account(Username, Passwd) of
@@ -346,11 +370,7 @@ user_ready(Sock, Game, Username) ->
                 "ready:false\n" -> 
                     unready(Username, Game),
                     lobby ! {unready, Username, self()},
-                    gen_tcp:send(Sock, "ready:ok\n"), user(Sock,  Username);
-                "msg:" ++ DataN -> 
-                    Data = lists:droplast(DataN),
-                    lobby ! {line, Username, Data},
-                    user_ready(Sock, Game, Username)
+                    gen_tcp:send(Sock, "ready:ok\n"), user(Sock,  Username)
             end;
         {tcp_closed, _} ->
             unready(Username, Game),
@@ -391,7 +411,7 @@ player_fromsim(Sock, Game, ToSim) ->
                                 "\nposE:", XE, ":", YE, ":", AE, "\n"])),
                     player_fromsim(Sock, Game, ToSim);
                 {boxes, Add, Remove, Game} ->
-                    %box:+:x:y:color
+                    %box:+_x_y_color
                     %box:+:x:y:color:-:x:y:color
                     %box:-:x:y:color
                     %Add e Remove são listas com listas dos elementos 

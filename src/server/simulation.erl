@@ -2,6 +2,8 @@
 
 -export([start_game/1, change_speed/1, change_angle/2]).
 
+-define(DELTA_ANGLE, 0.125).
+-define(DELTA_ACC, 0.125).
 -define(RADIUS, 10).
 -define(GAME_DURATION, 60000).
 -define(POWER_CHANCE, 5).
@@ -194,7 +196,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker) ->
 %depois pode-se reutilizar a função para spawnar os power_ups se tivermos em conta os jogadores
 get_random_pos(Positions, {Boundx_max, Boundy_max}) ->
     Radius = ?RADIUS * 4,
-    {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundy_max+1)-1},
+    {NewPosX, NewPosY} = {rand:uniform(Boundx_max-2*?RADIUS-2)+?RADIUS+1,rand:uniform(Boundy_max-2*?RADIUS-2)+?RADIUS + 1},
     Bool = lists:any(fun({X,Y,_}) -> colision(X, Y, NewPosX, NewPosY, Radius) end, Positions), 
     if
         Bool ->
@@ -248,13 +250,13 @@ colision(X1, Y1, X2, Y2, Radius) ->
     (X1 - X2) * (X1 - X2) + (Y1 - Y2) * (Y1 - Y2) =< Radius * Radius.
 
 check_color({X, Y, C}, Sim) ->
-    Delta = 1,%TODO check proper delta
+    %TODO check proper delta
     case C of
         blue ->
-            Sim ! {change_angvel, Delta},
+            Sim ! {change_angvel, ?DELTA_ANGLE},
             {X, Y, C};
         green ->
-            Sim ! {change_accel, Delta},
+            Sim ! {change_accel, ?DELTA_ACC},
             {X, Y, C};
         red ->
             Sim ! reset_param,
