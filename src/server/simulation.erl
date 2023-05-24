@@ -112,7 +112,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
                     Player1_sim ! reset_param,
                     %Player2_sim ! reset_param,
-                    {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
+                    {NewPosX, NewPosY} = get_random_pos({X2_, Y2_}, {Boundx_max, Boundy_max}),
                     space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
                     space_server:score(P1, P2+1, Controller, self()),
 
@@ -122,11 +122,12 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                 X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
                     %Player1_sim ! reset_param,
                     Player2_sim ! reset_param,
-                    {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
-                    Ticker ! reset,
-
+                    {NewPosX, NewPosY} = get_random_pos({X1_, Y1_}, {Boundx_max, Boundy_max}),
+                    
                     space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
                     space_server:score(P1 + 1, P2, Controller, self()),
+
+                    Ticker ! reset,
 
                     game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Ticker);
                 true -> % else check_player_colision
@@ -134,7 +135,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                         hit1 ->
                             Player1_sim ! reset_param,
                             %Player2_sim ! reset_param,
-                            {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
+                            {NewPosX, NewPosY} = get_random_pos({X2_, Y2_}, {Boundx_max, Boundy_max}),
                             space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
                             space_server:score(P1 + 1, P2, Controller, self()),
 
@@ -143,7 +144,7 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                             game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker);
                         hit2 ->
                             Player2_sim ! reset_param,
-                            {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundx_min+1)-1},
+                            {NewPosX, NewPosY} = get_random_pos({X1_, Y1_}, {Boundx_max, Boundy_max}),
                     
                             space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
                             space_server:score(P1, P2 + 1, Controller, self()),
@@ -162,6 +163,17 @@ game(Controller, Pos, Player_sims, Powerups, {P1, P2}, Ticker) ->
                            end
                     end
             end.
+
+get_random_pos({OtherPlayerX, OtherPlayerY}, {Boundx_max, Boundy_max}) ->
+    Radius = 30,
+    {NewPosX, NewPosY} = {rand:uniform(Boundx_max+1)-1,rand:uniform(Boundy_max+1)-1},
+    Bool = colision(OtherPlayerX, OtherPlayerY, NewPosX, NewPosY, Radius),
+    if
+        Bool ->
+            get_random_pos({OtherPlayerX, OtherPlayerY}, {Boundx_max, Boundy_max});
+        true ->
+            {NewPosX, NewPosY}
+    end.
 
 %simulator saves and updates the current values for speed and the angle
 %updates are done through messages to the process
