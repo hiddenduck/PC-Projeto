@@ -92,7 +92,7 @@ class CommunicatorBox extends Communicator{
                         coords[j++] = temp.toString();
                         temp = new StringBuilder();
                         //este teste é irrelevante porque ele deve ser sempre j==2
-                        if(j==2) {
+                        if(j==3) {
                             boxes.add(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                             j=0;
                         }

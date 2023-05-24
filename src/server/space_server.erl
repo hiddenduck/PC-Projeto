@@ -129,7 +129,7 @@ ready([{FstUsername, FstPlayer}]) ->
 sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
     %Avisar os utilizadores para entrarem no jogo
     {Player1Sim, Player2Sim, GameSim} = simulation:start_game(self()),
-    io:format("~p ~p ~n", [Player1Sim, Player2Sim]),
+    %io:format("~p ~p ~n", [Player1Sim, Player2Sim]),
     FstPlayer ! {start_game, Player1Sim, self()},
     SndPlayer ! {start_game, Player2Sim, self()},
     receive
@@ -256,7 +256,6 @@ main_menu(Sock) ->
         {tcp, _, "login:" ++ DataN} -> 
             Data = lists:droplast(DataN),
             [Username, Password] = string:split(Data, ":", all),
-            io:format("~p", [Password]),
             case file_manager:login(Username, Password) of
                 ok ->
                     Bool = lists:member(Username, online()),
