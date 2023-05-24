@@ -269,7 +269,7 @@ private void game() throws IOException{
     for (Triple box : gameDraw.boxes) {
       triple = this.colorMap.get(box.chars[0]);
       fill(triple.floats[0], triple.floats[1], triple.floats[2]);
-      rect(box.floats[0], box.floats[1], 1, 1);
+      rect(box.floats[0], box.floats[1], 20, 20);
     }
 
     if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
