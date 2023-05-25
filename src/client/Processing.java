@@ -270,6 +270,9 @@ private void deleteMenu(){
   triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
   fill(112,128,144);
   rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
+  textSize(width*0.1f);
+  fill(255,160,122);
+  text(message, width*0.5f, height*0.80f);
 }
 
 private void game() throws IOException{
@@ -507,7 +510,18 @@ public void draw(){
            this.password.reset();
            this.message = "";
            this.menu = "deleteMenu";
-           /*
+         }
+       } else if(Objects.equals(this.menu, "topMenu")){
+         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
+           this.menu = "loggedMenu";
+         } else if(this.topMinLimit+13 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
+            this.topMinLimit += 12;
+         } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
+            this.topMinLimit -= 12;
+         }
+       } else if(Objects.equals(this.menu, "deleteMenu")){
+         this.password.select(mouseX,mouseY);
+         if(isInsideBox(width*0.45f, height*0.65f, width*0.1f, height*0.1f)){
            try{
              this.connectionManager.send("close",password.getText());
            } catch (IOException e){
@@ -525,19 +539,6 @@ public void draw(){
              this.menuImage = loadImage("images/space.jpg");
              this.menu = "startMenu";
            }
-           */
-         }
-       } else if(Objects.equals(this.menu, "topMenu")){
-         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
-           this.menu = "loggedMenu";
-         } else if(this.topMinLimit+13 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
-            this.topMinLimit += 12;
-         } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
-            this.topMinLimit -= 12;
-         }
-       } else if(Objects.equals(this.menu, "deleteMenu")){
-         if(isInsideBox(width*0.45f, height*0.65f, width*0.1f, height*0.1f)){
-
          } else if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
            this.menu = "loggedMenu";
          }
