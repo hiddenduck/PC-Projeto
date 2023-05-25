@@ -242,6 +242,17 @@ simulator(PlayerState, Flag) ->
     after
         0 ->
             receive
+                stop -> 
+                    ok;
+                speed_up when Flag band 1 == 0 ->
+                    %io:format("vroom received, over\n"),
+                    NewPlayerState =
+                        {{Vx + Accel * math:cos(Alfa), Vy + Accel * math:sin(Alfa)}, Alfa, {Accel, AngVel}},
+                    simulator(NewPlayerState, Flag bor 1);
+                {change_direction, Dir} when Flag band 2 == 0 ->
+                    %io:format("turn received, over\n"),
+                    NewPlayerState = {{Vx, Vy}, normalize(Alfa + Dir*AngVel), {Accel, AngVel}},
+                    simulator(NewPlayerState, Flag bor 2);
                 {change_accel, Delta} ->
                     io:format("?:~p", [Delta*(?BASE_ACCEL/Accel)]),
                     simulator({{Vx, Vy}, Alfa, {Accel + Delta*(?BASE_ACCEL/Accel), AngVel}}, Flag);
@@ -272,7 +283,9 @@ simulator(PlayerState, Flag) ->
                         true ->
                             AngVel_ = AngVel
                     end,
-                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag)
+                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag);
+                _ ->
+                    simulator(PlayerState, Flag)
             end
     end.
 
