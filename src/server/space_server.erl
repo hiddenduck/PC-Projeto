@@ -46,7 +46,7 @@ lobby(Users, WinMap) ->
         {win, Username, User} ->
             io:format("user won ~p ~n", [Username]),
             case maps:find(Username, WinMap) of
-                {ok, {_, _, OldWins}} -> Wins = OldWins + 1;
+                {ok, OldWins} -> Wins = OldWins + 1;
                 _ -> Wins = 1
             end,
             %ver se o gajo que ganhou fica no top
