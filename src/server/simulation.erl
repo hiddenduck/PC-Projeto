@@ -133,6 +133,9 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
             {X1_, Y1_, Alfa1} = new_pos(Pos1, Player1_sim),
             {X2_, Y2_, Alfa2} = new_pos(Pos2, Player2_sim),
 
+            Player1_sim ! decay,
+            Player2_sim ! decay,
+
             space_server:positions({X1_, Y1_, Alfa1}, {X2_, Y2_, Alfa2}, Controller, self()),
 
             Boundx_min = 0,%TODO tune
@@ -260,13 +263,20 @@ simulator(PlayerState, Flag) ->
                 {return_state, From} ->
                     From ! {PlayerState, self()},
                     simulator(PlayerState, 0);
-                {decay_accel} ->
-                    if
-                        Accel == ?BASE_ACCEL, AngVel == ?BASE_ANGVEL ->
-                            simulator(PlayerState, Flag);
+                decay ->
+                    if 
+                        Accel /= ?BASE_ACCEL ->
+                            Accel_ = Accel - ?DECAY_RATE;
                         true ->
-                            simulator({{Vx, Vy}, Alfa, {Accel - ?DECAY_RATE, AngVel - ?DECAY_RATE}}, Flag)
-                    end
+                            Accel_ = Accel
+                    end,
+                    if
+                        AngVel /= ?BASE_ANGVEL ->
+                            AngVel_ = AngVel - ?DECAY_RATE;
+                        true ->
+                            AngVel_ = AngVel
+                    end,
+                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag)
             end
     end.
 
