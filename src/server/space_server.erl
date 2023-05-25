@@ -337,7 +337,7 @@ user(Sock, Username) ->
         {tcp_error, _, _} ->
             lobby ! {leave, Username, self()};
         stop ->
-            gen_tcp:send(Sock, "server:closed\n")
+            gen_tcp:close(Sock)
     end.
 
 unready(Username, Game) ->
@@ -386,12 +386,13 @@ user_ready(Sock, Game, Username) ->
             unready(Username, Game),
             lobby ! {leave, Username, self()};
         stop ->
-            gen_tcp:send(Sock, "server:closed\n")
+            gen_tcp:close(Sock)
     end.
 
 player_fromsim(Sock, Game, ToSim) ->
     %io:format("player_from\n"),
     receive
+        stop -> ok;
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
@@ -401,6 +402,7 @@ player_fromsim(Sock, Game, ToSim) ->
         after 0 ->
             %io:format("player_from_after\n"),
             receive
+                stop -> gen_tcp:close(Sock), ToSim ! {stop, self()};
                 {victory, Level, Game} -> 
                     ToSim ! {abort, win, self()},
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
@@ -439,6 +441,7 @@ player_fromsim(Sock, Game, ToSim) ->
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
     %io:format("player_to\n"),
     receive
+        stop -> gen_tcp:close(Sock), FromSim ! stop;
         {abort, Res, FromSim} ->
             lobby ! {Res, Username, self()},
             user(Sock, Username);
