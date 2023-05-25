@@ -221,6 +221,10 @@ get_random_pos(Positions, {Boundx_max, Boundy_max}) ->
             {NewPosX, NewPosY}
     end.
 
+% [0, 2pi]
+normalize(Angle) ->
+    math:fmod(Angle + 2*math:pi(), 2*math:pi()).
+
 %simulator saves and updates the current values for speed and the angle
 %updates are done through messages to the process
 %saves values of speed in separate coordenates to save work on mv()
@@ -241,7 +245,7 @@ simulator(PlayerState, Flag) ->
             simulator(NewPlayerState, Flag bor 1);
         {change_direction, Dir} when Flag band 2 == 0 ->
             %io:format("turn received, over\n"),
-            NewPlayerState = {{Vx, Vy}, math:fmod(Alfa + Dir * AngVel, 2*math:pi()), {Accel, AngVel}},
+            NewPlayerState = {{Vx, Vy}, normalize(Alfa + Dir*AngVel), {Accel, AngVel}},
             simulator(NewPlayerState, Flag bor 2);
         _ ->
             simulator(PlayerState, Flag)
@@ -286,7 +290,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = ?RADIUS * 2,%TODO tune
-    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1 - Alfa2) < math:pi()/2),
+    GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1 - Alfa2) < math:pi()/2), 
     io:format("~w ~w ~w \n", [colision(X1, Y1, X2, Y2, Radius), Alfa1, Alfa2]),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
