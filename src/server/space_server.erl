@@ -29,6 +29,7 @@ online() ->
 %Lobby como sala tirada diretamente das salas definidas nas aulas prática
 %A chave é o Username porque é necessário para testar quando um utilizador entra
 lobby(Users, WinMap) ->
+    io:format("~p\n", [WinMap]),
     receive
         {top, 0, From} ->
             From ! {lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), lobby},
@@ -39,6 +40,8 @@ lobby(Users, WinMap) ->
         {online, From} ->
             From ! {maps:keys(Users), lobby},
             lobby(Users,WinMap);
+        {loss, Username, User} ->
+            lobby(Users#{Username => {unready, User}}, WinMap);
         {win, Username, User} ->
             io:format("user won ~p ~n", [Username]),
             case maps:find(Username, WinMap) of
@@ -48,7 +51,7 @@ lobby(Users, WinMap) ->
             %ver se o gajo que ganhou fica no top
             %não mandar para as pessoas a jogar, só unready/ready 
             %lists:map(fun({_, Pid})-> Pid ! {new_win, Username, Wins} end, maps:values(Users)),
-            lobby(Users#{Username => {unready, User, Wins}}, WinMap#{Username => Wins});
+            lobby(Users#{Username => {unready, User}}, WinMap#{Username => Wins});
         {enter, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
             %TODO pôr o leaderboard inicial para todos
@@ -296,9 +299,9 @@ leaderboard(NumberN, Sock) ->
     lobby ! {top, Int, self()},
     receive 
         {List, lobby} -> 
-            io:format("~p\n", [lists:foldl(fun({U, W}, Acc) -> lists:concat(Acc, U, "_", W, ":") end, "top:", List) ++ "\n"]),
+            io:format("~p\n", [lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, "top:", List) ++ "\n"]),
             gen_tcp:send(Sock, 
-                lists:foldl(fun({U, W}, Acc) -> lists:concat(Acc, U, "_", W, ":") end, 
+                lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, 
                     "top:", List) 
                 ++ "\n") 
     end.
@@ -400,10 +403,10 @@ player_fromsim(Sock, Game, ToSim) ->
             %io:format("player_from_after\n"),
             receive
                 {victory, Level, Game} -> 
-                    ToSim ! {abort, self()},
+                    ToSim ! {abort, win, self()},
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
                 {defeat, Level, Game} -> 
-                    ToSim ! {abort, self()},
+                    ToSim ! {abort, loss, self()},
                     gen_tcp:send(Sock, "game:l\n");
                 {golden, Game} -> 
                     gen_tcp:send(Sock, "game:g\n"),
@@ -437,8 +440,8 @@ player_fromsim(Sock, Game, ToSim) ->
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
     %io:format("player_to\n"),
     receive
-        {abort, FromSim} ->
-            lobby ! {unready, Username, self()},
+        {abort, Res, FromSim} ->
+            lobby ! {Res, Username, self()},
             user(Sock, Username);
         {tcp, _, DataN} -> 
             Data = lists:droplast(DataN),
