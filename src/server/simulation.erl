@@ -6,11 +6,12 @@
 -define(DELTA_ACC, 0.125).
 -define(RADIUS, 10).
 -define(GAME_DURATION, 60000).
--define(POWER_CHANCE, 100).
+-define(POWER_CHANCE, 1).
 -define(BASE_ACCEL, 0.125).
 -define(BASE_ANGVEL, 0.125).
 -define(TICK_RATE, 100).
 -define(RESET_TIME, 5000).
+-define(BOX_LIMIT, 10).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
@@ -141,18 +142,19 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
             Boundy_max = 700,%TODO tune
             
             %Isto tudo pode estar dentro de uma função que devolve Powerups
-            Power = (rand:uniform()) * 100,
-            if Power =< ?POWER_CHANCE ->
-                C = case rand:uniform(3) of
-                    1 -> blue;
-                    2 -> green;
-                    3 -> red
-                end,
-                {X, Y} = get_random_pos([{X1_, Y1_, Alfa1} , {X2_, Y2_, Alfa2} | OldPowerups], {Boundx_max, Boundy_max}),
-                AddPowerups = [{X,Y,C} | OldPowerups],
-                Add = [{X,Y,C}],
-                io:format("novo powerup\n");
-                true -> AddPowerups = OldPowerups, Add = []
+            Pow = rand:uniform(?POWER_CHANCE),
+            if 
+                Pow == 1, length(OldPowerups) < ?BOX_LIMIT ->
+                    C = case rand:uniform(3) of
+                        1 -> blue;
+                        2 -> green;
+                        3 -> red
+                    end,
+                    {X, Y} = get_random_pos([{X1_, Y1_, Alfa1} , {X2_, Y2_, Alfa2} | OldPowerups], {Boundx_max, Boundy_max}),
+                    AddPowerups = [{X,Y,C} | OldPowerups],
+                    Add = [{X,Y,C}],
+                    io:format("novo powerup\n");
+                    true -> AddPowerups = OldPowerups, Add = []
             end,
             Remove = update_deltas({X1_, Y1_}, AddPowerups, Player1_sim) ++ update_deltas({X2_, Y2_}, AddPowerups, Player2_sim),
             if 
