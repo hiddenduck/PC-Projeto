@@ -205,7 +205,9 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
                         nohit ->
                             game(Controller, {{X1_, Y1_},{X2_, Y2_}}, {Player1_sim, Player2_sim}, Powerups,{P1, P2}, Timer, Ticker, Golden) % if no hit call ticker after update_deltas 
                            end
-                    end
+                    end;
+                _ ->
+                    game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
             end.
 
 %TODO é preciso transformar este primeiro par numa lista para cada um dos power_ups
@@ -246,9 +248,7 @@ simulator(PlayerState, Flag) ->
         {change_direction, Dir} when Flag band 2 == 0 ->
             %io:format("turn received, over\n"),
             NewPlayerState = {{Vx, Vy}, normalize(Alfa + Dir*AngVel), {Accel, AngVel}},
-            simulator(NewPlayerState, Flag bor 2);
-        _ ->
-            simulator(PlayerState, Flag)
+            simulator(NewPlayerState, Flag bor 2)
     after
         0 ->
             receive
@@ -280,7 +280,9 @@ simulator(PlayerState, Flag) ->
                         true ->
                             AngVel_ = AngVel
                     end,
-                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag)
+                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag);
+                _ ->
+                    simulator(PlayerState, Flag)
             end
     end.
 
