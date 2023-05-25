@@ -7,6 +7,8 @@
 -define(RADIUS, 10).
 -define(GAME_DURATION, 60000).
 -define(POWER_CHANCE, 5).
+-define(BASE_ACCEL, 0.125).
+-define(BASE_ANGVEL, 0.125).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
@@ -245,9 +247,9 @@ simulator(PlayerState, Flag) ->
         0 ->
             receive
                 {change_accel, Delta} ->
-                    simulator({{Vx, Vy}, Alfa, {Accel + Delta, AngVel}}, Flag);
+                    simulator({{Vx, Vy}, Alfa, {Accel + Delta*(?BASE_ACCEL/Accel), AngVel}}, Flag);
                 {change_angvel, Delta} ->
-                    simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta}}, Flag);
+                    simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta*(?BASE_ANGVEL/AngVel)}}, Flag);
                 reset_state ->
                     simulator({{0, 0}, 0, {0.125,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 reset_param ->
