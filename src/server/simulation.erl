@@ -12,6 +12,7 @@
 -define(TICK_RATE, 100).
 -define(RESET_TIME, 5000).
 -define(BOX_LIMIT, 10).
+-define(DECAY_RATE, 0.01).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
@@ -258,7 +259,14 @@ simulator(PlayerState, Flag) ->
                     simulator({{Vx, Vy}, Alfa, {?BASE_ACCEL, ?BASE_ANGVEL}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 {return_state, From} ->
                     From ! {PlayerState, self()},
-                    simulator(PlayerState, 0)
+                    simulator(PlayerState, 0);
+                {decay_accel} ->
+                    if
+                        Accel == ?BASE_ACCEL, AngVel == ?BASE_ANGVEL ->
+                            simulator(PlayerState, Flag);
+                        true ->
+                            simulator({{Vx, Vy}, Alfa, {Accel - ?DECAY_RATE, AngVel - ?DECAY_RATE}}, Flag)
+                    end
             end
     end.
 
