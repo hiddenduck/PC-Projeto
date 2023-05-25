@@ -330,7 +330,7 @@ private void game() throws IOException{
     for (Triple box : gameDraw.boxes) {
       triple = this.colorMap.get(box.chars[0]);
       fill(triple.floats[0], triple.floats[1], triple.floats[2]);
-      rect(width*0.0625f + box.floats[0], height*0.1f + box.floats[1], 20, 20);
+      rect(width*0.0625f + box.floats[0] - 10, height*0.1f + box.floats[1] - 10, 20, 20);
     }
 
     if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
