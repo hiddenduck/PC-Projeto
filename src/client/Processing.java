@@ -465,11 +465,11 @@ public void draw(){
              this.menu = "startMenu";
            }
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
-           this.menu = "waitingMeu";
+           this.menu = "waitingMenu";
            this.isReady = false;
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
-           
+
          }
        }
     }
