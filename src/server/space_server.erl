@@ -29,7 +29,7 @@ online() ->
 %Lobby como sala tirada diretamente das salas definidas nas aulas prática
 %A chave é o Username porque é necessário para testar quando um utilizador entra
 lobby(Users, WinMap) ->
-    io:format("~p\n", [WinMap]),
+    %io:format("~p\n", [WinMap]),
     receive
         {top, 0, From} ->
             From ! {lists:sort(fun({U1, V1}, {U2, V2}) -> 
@@ -42,6 +42,7 @@ lobby(Users, WinMap) ->
             From ! {maps:keys(Users), lobby},
             lobby(Users,WinMap);
         {loss, Username, User} ->
+            io:format("user loss ~p ~n", [Username]),
             lobby(Users#{Username => {unready, User}}, WinMap);
         {win, Username, User} ->
             io:format("user won ~p ~n", [Username]),
@@ -49,13 +50,9 @@ lobby(Users, WinMap) ->
                 {ok, OldWins} -> Wins = OldWins + 1;
                 _ -> Wins = 1
             end,
-            %ver se o gajo que ganhou fica no top
-            %não mandar para as pessoas a jogar, só unready/ready 
-            %lists:map(fun({_, Pid})-> Pid ! {new_win, Username, Wins} end, maps:values(Users)),
             lobby(Users#{Username => {unready, User}}, WinMap#{Username => Wins});
         {enter, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
-            %TODO pôr o leaderboard inicial para todos
             lobby(Users#{Username => {unready, User}}, WinMap);
         {unready, Username, User} ->
             io:format("user unready ~p ~n", [Username]),

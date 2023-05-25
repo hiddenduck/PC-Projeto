@@ -6,19 +6,19 @@
 -define(DELTA_ACC, 0.125).
 -define(RADIUS, 10).
 -define(GAME_DURATION, 60000).
--define(POWER_CHANCE, 10).
+-define(POWER_CHANCE, 150).
 -define(BASE_ACCEL, 0.125).
 -define(BASE_ANGVEL, 0.125).
 -define(TICK_RATE, 100).
 -define(RESET_TIME, 5000).
 -define(BOX_LIMIT, 10).
--define(DECAY_RATE, 0.01).
+-define(DECAY_RATE, 0.0001).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
 start_game(Controller) ->
     P1 = {{0, 0}, 0, {0.125,0.125}},
-    P2 = {{0, 0}, 3.14159, {0.125,0.125}},
+    P2 = {{0, 0}, math:pi(), {0.125,0.125}},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> Self = self(),
