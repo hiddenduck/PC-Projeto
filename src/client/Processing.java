@@ -168,6 +168,32 @@ private void logRegMenu(){
   rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
 }
 
+private void loggedMenu(){
+  background(this.menuImage);
+  textAlign(CENTER, CENTER);
+  fill(206, 235, 251);
+  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  fill(206, 235, 251);
+  textSize(width*0.05f);
+  text("Welcome " + this.user.getText(),width/2.0f,height*0.05f);
+  text("Level: " + this.level,width/2.0f,height*0.1f);
+  strokeWeight(3);
+  textSize(width*0.05f);
+  text("Play",width*0.5f,height*0.25f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.3f, width*0.1f, height*0.1f);
+  fill(206, 235, 251);
+  textSize(width*0.05f);
+  text("LeaderBoard",width*0.5f,height*0.45f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
+  fill(206, 235, 251);
+  textSize(width*0.05f);
+  text("Delete Account",width*0.5f,height*0.65f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
+}
+
 private void waitingMenu(){
   background(this.menuImage);
   strokeWeight(10);
@@ -371,7 +397,7 @@ public void draw(){
             if(Objects.equals(messageArgs[0], "ok")) {
               this.level = Integer.parseInt(messageArgs[1]);
               this.menuImage = loadImage("images/space2.jpg");
-              this.menu = "waitingMenu";
+              this.menu = "loggedMenu";
             }
           }
         }
@@ -380,25 +406,7 @@ public void draw(){
                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
-          try {
-            this.connectionManager.send("logout", "");
-          } catch (IOException e){
-            e.printStackTrace();
-          }
-
-          try{
-            this.message = this.connectionManager.receive("logout");
-          } catch (IOException|InterruptedException e){
-            e.printStackTrace();
-          }
-
-          if(Objects.equals(this.message, "ok")) {
-            this.message = "";
-            this.user.reset();
-            this.password.reset();
-            this.menuImage = loadImage("images/space.jpg");
-            this.menu = "startMenu";
-          }
+          this.menu = "loggedMenu";
         }
          else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           try{
@@ -432,7 +440,38 @@ public void draw(){
             this.menu = "startMenu";
           }
          }
-      }
+      } else if(Objects.equals(this.menu, "loggedMenu")){
+         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
+                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
+                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
+                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+           try {
+             this.connectionManager.send("logout", "");
+           } catch (IOException e){
+             e.printStackTrace();
+           }
+
+           try{
+             this.message = this.connectionManager.receive("logout");
+           } catch (IOException|InterruptedException e){
+             e.printStackTrace();
+           }
+
+           if(Objects.equals(this.message, "ok")) {
+             this.message = "";
+             this.user.reset();
+             this.password.reset();
+             this.menuImage = loadImage("images/space.jpg");
+             this.menu = "startMenu";
+           }
+         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
+           this.menu = "waitingMeu";
+           this.isReady = false;
+         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
+           
+         }
+       }
     }
   }
 
