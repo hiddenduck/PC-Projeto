@@ -152,6 +152,7 @@ private void startMenu(){
   text("Exit",width*0.5f,height*0.65f);
   fill(112,128,144);
   rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
+  strokeWeight(0);
 }
 
 private void logRegMenu(){
@@ -211,7 +212,6 @@ private void topMenu(){
 }
 
 private void waitingMenu(){
-  strokeWeight(0);
   background(this.menuImage);
   fill(206, 235, 251);
   triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
@@ -223,11 +223,6 @@ private void waitingMenu(){
   text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
   text("Level: " + this.level,width*0.45f,height*0.2f);
 
-  strokeWeight(0);
-  fill(255,69,0);
-  textSize(width*0.02f);
-  text("Delete", width*0.92f, height*0.885f);
-  rect(width*0.9f, height*0.9f, width*0.05f, height*0.05f);
   textSize(width*0.08f);
   if(isReady){
     strokeWeight(8);
@@ -240,7 +235,7 @@ private void waitingMenu(){
     fill(220,20,60);
     text("Not Ready", width*0.5f,  height*0.42f);
   }
-
+  strokeWeight(0);
   if(Objects.equals(this.gameState.gameStatus, "s")) {
     this.menuImage = loadImage("images/space3.jpg");
     this.menu = "game";
@@ -249,7 +244,6 @@ private void waitingMenu(){
     this.gameState.boxes = new HashSet<>();
     this.isInGame = true;
   }
-  strokeWeight(0);
 }
 
 private void game() throws IOException{
@@ -489,7 +483,6 @@ public void draw(){
            try {
              this.connectionManager.send("top", "10");
              String leaders = this.connectionManager.receive("top");
-             System.out.println(leaders);
            } catch (IOException|InterruptedException e){
              e.printStackTrace();
            }
