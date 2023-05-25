@@ -300,7 +300,7 @@ leaderboard(NumberN, Sock) ->
     lobby ! {top, Int, self()},
     receive 
         {List, lobby} -> 
-            io:format("~p\n", [lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, "top:", List) ++ "\n"]),
+            %io:format("~p\n", [lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, "top:", List) ++ "\n"]),
             gen_tcp:send(Sock, 
                 lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, 
                     "top:", List) 
