@@ -51,30 +51,29 @@ class CommunicatorBox extends Communicator{
         do {
             try {
                 box = this.connectionManager.receive("box");
-                this.gameState.lrw.readLock().lock();
-                try {
+                    boolean minus = true, plus = false;
                     int i = 0, j = 0;
-                    String[] coords = new String[3];
                     StringBuilder temp = new StringBuilder();
-                    boolean minus = true;
+                    String[] coords1 = new String[3];
                     if(box.charAt(0)=='+'){
+                        plus = true;
                         for(i=2; i<box.length() && box.charAt(i)!='-'; i++){
                             if(box.charAt(i)!=':'){
                                 temp.append(box.charAt(i));
                             }else{
-                                coords[j++] = temp.toString();
+                                coords1[j++] = temp.toString();
                                 temp = new StringBuilder();
                             }
                         }
-                        coords[j] = temp.toString();
+                        coords1[j] = temp.toString();
                         temp = new StringBuilder();
                         j=0;
-                        this.gameState.putBox(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                         if(i==box.length()) minus = false;
 
                     }
+                    Set<Triple> boxes = new HashSet<>();
                     if(minus) {
-                        Set<Triple> boxes = new HashSet<>();
+                        String[] coords = new String[3];
                         //saltar o "-:"
                         for (i+=2; i < box.length(); i++) {
                             if (box.charAt(i) != ':') {
@@ -96,12 +95,19 @@ class CommunicatorBox extends Communicator{
                             boxes.add(new Triple(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), coords[2].charAt(0)));
                             j=0;
                         }
-                        this.gameState.removeBoxes(boxes);
-                    }
 
-                } finally {
-                    this.gameState.lrw.readLock().unlock();
-                }
+                    }
+                    this.gameState.lrw.readLock().lock();
+                    try{
+                        if(minus){
+                            this.gameState.removeBoxes(boxes);
+                        }
+                        if(plus){
+                            this.gameState.putBox(new Triple(Float.parseFloat(coords1[0]), Float.parseFloat(coords1[1]), coords1[2].charAt(0)));
+                        }
+                    } finally {
+                        this.gameState.lrw.readLock().unlock();
+                    }
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }

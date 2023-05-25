@@ -36,7 +36,7 @@ class Triple{
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Triple triple = (Triple) o;
-        return this.floats[0] == triple.floats[0] && this.floats[1] == triple.floats[1] && triple.chars[0] == this.chars[1];
+        return this.floats[0] == triple.floats[0] && this.floats[1] == triple.floats[1] && triple.chars[0] == this.chars[0];
     }
 }
 
@@ -95,6 +95,9 @@ public class GameState {
 
     public void removeBoxes(Set<Triple> oldBoxes){
         for(Triple triple: oldBoxes){
+            for(Triple box: this.boxes){
+                System.out.println(box.equals(triple));
+            }
             System.out.println(triple.floats[0] + " "+  triple.floats[1]);
             this.boxes.remove(triple);
         }
