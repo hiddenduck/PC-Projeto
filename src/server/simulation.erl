@@ -251,9 +251,9 @@ simulator(PlayerState, Flag) ->
                 {change_angvel, Delta} ->
                     simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta*(?BASE_ANGVEL/AngVel)}}, Flag);
                 reset_state ->
-                    simulator({{0, 0}, 0, {0.125,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
+                    simulator({{0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 reset_param ->
-                    simulator({{Vx, Vy}, Alfa, {0.125,0.125}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
+                    simulator({{Vx, Vy}, Alfa, {?BASE_ACCEL, ?BASE_ANGVEL}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 {return_state, From} ->
                     From ! {PlayerState, self()},
                     simulator(PlayerState, 0)
