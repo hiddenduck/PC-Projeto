@@ -253,8 +253,10 @@ simulator(PlayerState, Flag) ->
         0 ->
             receive
                 {change_accel, Delta} ->
+                    io:format("?:~p", [Delta*(?BASE_ACCEL/Accel)]),
                     simulator({{Vx, Vy}, Alfa, {Accel + Delta*(?BASE_ACCEL/Accel), AngVel}}, Flag);
                 {change_angvel, Delta} ->
+                    io:format("?:~p", [Delta*(?BASE_ANGVEL/AngVel)]),
                     simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta*(?BASE_ANGVEL/AngVel)}}, Flag);
                 reset_state ->
                     simulator({{0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
@@ -264,7 +266,6 @@ simulator(PlayerState, Flag) ->
                     From ! {PlayerState, self()},
                     simulator(PlayerState, 0);
                 decay ->
-                    io:format("decay"),
                     if 
                         Accel > ?BASE_ACCEL ->
                             Accel_ = Accel - ?DECAY_RATE,
@@ -290,12 +291,15 @@ check_color({X, Y, C}, Sim) ->
     %TODO check proper delta
     case C of
         blue ->
+            io:format("blue hit"),
             Sim ! {change_angvel, ?DELTA_ANGLE},
             {X, Y, C};
         green ->
+            io:format("green hit"),
             Sim ! {change_accel, ?DELTA_ACC},
             {X, Y, C};
         red ->
+            io:format("red hit"),
             Sim ! reset_param,
             {X, Y, C}
     end.
@@ -308,7 +312,7 @@ update_deltas({X1, Y1}, Powerups, Sim) ->
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = ?RADIUS * 2,%TODO tune
     GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1 - Alfa2) < math:pi()/2), 
-    io:format("~w ~w ~w \n", [colision(X1, Y1, X2, Y2, Radius), Alfa1, Alfa2]),
+    %io:format("~w ~w ~w \n", [colision(X1, Y1, X2, Y2, Radius), Alfa1, Alfa2]),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->
