@@ -155,9 +155,9 @@ loop_levels(Map) ->
 				error ->
 					From ! {ok,1, level_manager}, 
 					loop_levels(maps:put(Username, {1, 0}, Map));
-				{ok, {Level,_}} ->
-					From ! {user_exists, Level, level_manager},
-					loop_levels(Map)
+				{ok, _} ->
+					From ! {user_exists, 1, level_manager},
+					loop_levels(Map#{Username => {1,0}})
 			end;
 		{level_up, Username, From} ->
 			case maps:find(Username, Map) of
