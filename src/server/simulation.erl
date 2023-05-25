@@ -173,7 +173,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
                     kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
                     ok;
 
-                X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
+                X2_ < Boundx_min + ?RADIUS; X2_ > Boundx_max - ?RADIUS; Y2_ < Boundy_min + ?RADIUS; Y2_ > Boundy_max - ?RADIUS ->
                     
                     space_server:abort_game(Controller, p2),
                     kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
