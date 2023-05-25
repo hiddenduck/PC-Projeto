@@ -264,15 +264,18 @@ simulator(PlayerState, Flag) ->
                     From ! {PlayerState, self()},
                     simulator(PlayerState, 0);
                 decay ->
+                    io:format("decay"),
                     if 
                         Accel > ?BASE_ACCEL ->
-                            Accel_ = Accel - ?DECAY_RATE;
+                            Accel_ = Accel - ?DECAY_RATE,
+                            io:format("decay Accel ~p", [Accel_]);
                         true ->
                             Accel_ = Accel
                     end,
                     if
                         AngVel > ?BASE_ANGVEL ->
-                            AngVel_ = AngVel - ?DECAY_RATE;
+                            AngVel_ = AngVel - ?DECAY_RATE,
+                            io:format("decay AngVel ~p", [AngVel_]);
                         true ->
                             AngVel_ = AngVel
                     end,
