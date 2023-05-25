@@ -254,6 +254,19 @@ private void waitingMenu(){
   }
 }
 
+private void deleteMenu(){
+  background(this.menuImage);
+  textAlign(CENTER, CENTER);
+  fill(206, 235, 251);
+  textSize(width*0.1f);
+  text("Confirm Password",width/2.0f,height*0.05f);
+  this.password.draw();
+  fill(206, 235, 251);
+  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+  fill(112,128,144);
+  rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
+}
+
 private void game() throws IOException{
   GameState gameDraw;
   this.gameState.lrw.writeLock().lock();
@@ -442,25 +455,7 @@ public void draw(){
           }
           if(Objects.equals(this.message, "ok"))
             this.isReady = !this.isReady;
-        } else if(mouseX > width*0.9f && mouseX < width*0.9f + width*0.05f && mouseY > height*0.9f && mouseY < height*0.9f + height*0.05f){
-          try{
-            this.connectionManager.send("close",password.getText());
-          } catch (IOException e){
-            e.printStackTrace();
-          }
-          try{
-            this.message = this.connectionManager.receive("close");
-          } catch (IOException|InterruptedException e){
-            e.printStackTrace();
-          }
-          if(Objects.equals(this.message, "ok")){
-            this.message = "";
-            this.user.reset();
-            this.password.reset();
-            this.menuImage = loadImage("images/space.jpg");
-            this.menu = "startMenu";
-          }
-         }
+        }
       } else if(Objects.equals(this.menu, "loggedMenu")){
          if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
            try {
@@ -501,7 +496,28 @@ public void draw(){
            }
            this.menu = "topMenu";
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
-
+           this.password.reset();
+           this.message = "";
+           this.menu = "deleteMenu";
+           /*
+           try{
+             this.connectionManager.send("close",password.getText());
+           } catch (IOException e){
+             e.printStackTrace();
+           }
+           try{
+             this.message = this.connectionManager.receive("close");
+           } catch (IOException|InterruptedException e){
+             e.printStackTrace();
+           }
+           if(Objects.equals(this.message, "ok")){
+             this.message = "";
+             this.user.reset();
+             this.password.reset();
+             this.menuImage = loadImage("images/space.jpg");
+             this.menu = "startMenu";
+           }
+           */
          }
        } else if(Objects.equals(this.menu, "topMenu")){
          if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
@@ -510,6 +526,12 @@ public void draw(){
             this.topMinLimit += 10;
          } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
             this.topMinLimit -= 10;
+         }
+       } else if(Objects.equals(this.menu, "deleteMenu")){
+         if(isInsideBox(width*0.45f, height*0.65f, width*0.1f, height*0.1f)){
+
+         } else if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
+           this.menu = "loggedMenu";
          }
        }
     }
