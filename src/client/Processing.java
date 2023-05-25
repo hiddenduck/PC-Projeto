@@ -94,6 +94,9 @@ public class Processing extends PApplet{
 
   private Map<Character, Triple> colorMap;
 
+  private String[] top;
+  private int topSize;
+
   private boolean[] keysPressed;
 public void setup(){
   frameRate(30);
@@ -123,6 +126,9 @@ public void setup(){
   this.colorMap.put('r', new Triple(255,0,0));
   this.colorMap.put('g', new Triple(34,139,34));
   this.colorMap.put('b', new Triple(0,191,255));
+
+  this.top = new String[10];
+  this.topSize = 0;
 }
 
 private void startMenu(){
@@ -193,6 +199,15 @@ private void loggedMenu(){
   text("Delete Account",width*0.5f,height*0.65f);
   fill(112,128,144);
   rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
+}
+
+private void topMenu(){
+  background(this.menuImage);
+  fill(206, 235, 251);
+  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  for(int i=1; i<=this.topSize; i++){
+    text(this.top[i-1], width*0.5f, height*(i/10.0f));
+  }
 }
 
 private void waitingMenu(){
@@ -467,11 +482,22 @@ public void draw(){
              this.menu = "startMenu";
            }
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
-           this.menu = "waitingMenu";
            this.isReady = false;
+           this.menu = "waitingMenu";
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+           this.topSize = 2;
+           this.top[0] = "Joaquim";
+           this.top[1] = "António José";
+           this.menu = "topMenu";
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
 
+         }
+       } else if(Objects.equals(this.menu, "topMenu")){
+         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
+                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
+                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
+                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)){
+           this.menu = "loggedMenu";
          }
        }
     }
