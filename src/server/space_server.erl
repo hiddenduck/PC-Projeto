@@ -31,9 +31,11 @@ online() ->
 lobby(Users, WinMap) ->
     receive
         {top, 0, From} ->
-            From ! {lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), lobby};
+            From ! {lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), lobby},
+            lobby(Users,WinMap);
         {top, Number, From} ->
-            From ! {lists:sublist(lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), Number), lobby};
+            From ! {lists:sublist(lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), Number), lobby},
+            lobby(Users,WinMap);
         {online, From} ->
             From ! {maps:keys(Users), lobby},
             lobby(Users,WinMap);
