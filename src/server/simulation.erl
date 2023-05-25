@@ -10,7 +10,6 @@
 -define(BASE_ACCEL, 0.125).
 -define(BASE_ANGVEL, 0.125).
 -define(TICK_RATE, 100).
--define(RESET_TIME, 5000).
 -define(BOX_LIMIT, 10).
 -define(DECAY_RATE, 0.0001).
 
@@ -143,12 +142,10 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
             Pow = rand:uniform(?POWER_CHANCE),
             if 
                 Pow == 1, length(OldPowerups) < ?BOX_LIMIT ->
-                    C = case rand:uniform(5)  of
-                        1 -> blue;
-                        2 -> blue;
-                        3 -> green;
-                        4 -> green;
-                        5 -> red
+                    C = case (rand:uniform(5) - 1) rem 3  of 
+                        0 -> blue;
+                        1 -> green;
+                        2 -> red
                     end,
                     {X, Y} = get_random_pos([{X1_, Y1_, Alfa1} , {X2_, Y2_, Alfa2} | OldPowerups], {Boundx_max, Boundy_max}),
                     AddPowerups = [{X,Y,C} | OldPowerups],
