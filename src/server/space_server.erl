@@ -318,7 +318,7 @@ user(Sock, Username) ->
             case file_manager:close_account(Username, Passwd) of
                 ok ->
                     lobby ! {leave, Username, self()},
-                    gen_tcp:send(Sock, "close:ok");
+                    gen_tcp:send(Sock, "close:ok\n");
 
                 wrong_password -> 
                     gen_tcp:send(Sock, "close:error_wrong_password\n"), user(Sock, Username);
