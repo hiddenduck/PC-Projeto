@@ -169,6 +169,7 @@ private void logRegMenu(){
 }
 
 private void loggedMenu(){
+  strokeWeight(0);
   background(this.menuImage);
   textAlign(CENTER, CENTER);
   fill(206, 235, 251);
@@ -195,13 +196,14 @@ private void loggedMenu(){
 }
 
 private void waitingMenu(){
+  strokeWeight(0);
   background(this.menuImage);
+  fill(206, 235, 251);
+  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   strokeWeight(10);
   fill(75,37,109);
   rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
   textSize(width*0.05f);
-  fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
   fill(188, 255, 18);
   text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
   text("Level: " + this.level,width*0.45f,height*0.2f);
