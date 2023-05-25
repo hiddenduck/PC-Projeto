@@ -65,11 +65,12 @@ class CommunicatorBox extends Communicator{
                                 temp = new StringBuilder();
                             }
                         }
-                        coords1[j] = temp.toString();
-                        temp = new StringBuilder();
+                        if(i==box.length()){
+                            coords1[j] = temp.toString();
+                            temp = new StringBuilder();
+                            minus = false;
+                        }
                         j=0;
-                        if(i==box.length()) minus = false;
-
                     }
                     Set<Triple> boxes = new HashSet<>();
                     if(minus) {
