@@ -12,7 +12,7 @@
 -define(TICK_RATE, 100).
 -define(RESET_TIME, 5000).
 -define(BOX_LIMIT, 10).
--define(DECAY_RATE, 0.01).
+-define(DECAY_RATE, 10).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
