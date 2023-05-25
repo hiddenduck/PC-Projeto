@@ -167,7 +167,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
             
 
             if % check players in bounds
-                X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
+                X1_ < Boundx_min + ?RADIUS; X1_ > Boundx_max - ?RADIUS; Y1_ < Boundy_min + ?RADIUS; Y1_ > Boundy_max - ?RADIUS ->
                     
                     space_server:abort_game(Controller, p1),
                     kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
