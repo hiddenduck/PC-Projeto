@@ -9,23 +9,26 @@
 -define(POWER_CHANCE, 5).
 -define(BASE_ACCEL, 0.125).
 -define(BASE_ANGVEL, 0.125).
+-define(TICK_RATE, 100).
+-define(RESET_TIME, 5000).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
-start_game(Game) ->
+start_game(Controller) ->
     P1 = {{0, 0}, 0, {0.125,0.125}},
     P2 = {{0, 0}, 3.14159, {0.125,0.125}},
     Player1_sim = spawn(fun() -> simulator(P1, 0) end),
     Player2_sim = spawn(fun() -> simulator(P2, 0) end),
     GameSim = spawn(fun() -> Self = self(),
         game(
-        Game,
-        {{100, 400}, {400, 400}},
-        {Player1_sim, Player2_sim},
-        [],
-        {0, 0},
-        spawn(fun() -> ticker(Self) end),
-        false
+        Controller,                       % Controller
+        {{100, 400}, {400, 400}},         % positions
+        {Player1_sim, Player2_sim},       % sims
+        [],                               % powerups
+        {0, 0},                           % points
+        spawn(fun() -> timer(Self) end),  % time
+        spawn(fun() -> ticker(Self) end), % ticker
+        false                             % golden point
     ) end),
     spawn(fun() -> timer(GameSim) end),
     {Player1_sim, Player2_sim, GameSim}.
@@ -48,10 +51,10 @@ ticker(GameSim) ->
         stop ->
             ok;
         {reset, GameSim} -> 
-            sleep(20000), %TODO tune
+            sleep(?RESET_TIME), %TODO tune
             ticker(GameSim)
     after
-        100 ->
+        ?TICK_RATE ->
             GameSim ! tick,
             ticker(GameSim)
     end.
@@ -67,8 +70,17 @@ new_pos({X, Y}, Sim) ->
 
 timer(GameSim) ->
     sleep(?GAME_DURATION),
-    io:format("times up"),
-    GameSim ! timeout.
+    receive
+        stop ->
+            ok
+    after
+        ?GAME_DURATION ->
+            io:format("times up"),
+            GameSim ! timeout
+    end.
+
+kill_procs(Procs) ->
+    [Proc ! stop || Proc <- Procs].
 
 %Game controls the general game state such as 
 %player position Powerups and Points
@@ -76,7 +88,7 @@ timer(GameSim) ->
 %and calculating position
 %finally it checks if a player is out of bounds
 %colison of players and updates deltas from Powerups
-game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
+game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden) ->
     receive
         _ when Golden, P1 /= P2 -> 
             %io:format("tick tock\n"),
@@ -87,8 +99,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
                 P1 < P2 -> p1
             end,
             space_server:abort_game(Controller, Loser),
-            Player1_sim ! stop,
-            Player2_sim ! stop,
+            kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
             ok;
         {stop, Controller} ->
             {Player1_sim, Player2_sim} = Player_sims,
@@ -97,7 +108,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
             ok;
         timeout when P1 == P2 ->
             space_server:golden_point(Controller),
-            game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, true);
+            game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, true);
         timeout when P1 /= P2 -> 
             %io:format("tick tock\n"),
             {Player1_sim, Player2_sim} = Player_sims,
@@ -153,26 +164,19 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
 
             if % check players in bounds
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
-                    Player1_sim ! reset_state,
-                    Player2_sim ! reset_param,
-                    {NewPosX, NewPosY} = get_random_pos([{X2_, Y2_, Alfa2} | Powerups], {Boundx_max, Boundy_max}),
-                    space_server:positions({NewPosX, NewPosY, 0}, {X2_, Y2_, Alfa2}, Controller, self()),
-                    space_server:score(P1, P2+1, Controller, self()),
-
-                    Ticker ! reset,
-
-                    game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker, Golden);
-                X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
-                    Player1_sim ! reset_param,
-                    Player2_sim ! reset_state,
-                    {NewPosX, NewPosY} = get_random_pos([{X1_, Y1_, Alfa1} | Powerups], {Boundx_max, Boundy_max}),
                     
-                    space_server:positions({X1_, Y1_, Alfa1}, {NewPosX, NewPosY, 0}, Controller, self()),
-                    space_server:score(P1 + 1, P2, Controller, self()),
+                    space_server:abort_game(Controller, p1),
+                    Player1_sim ! stop,
+                    Player2_sim ! stop,
+                    ok;
 
-                    Ticker ! reset,
+                X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
+                    
+                    space_server:abort_game(Controller, p1),
+                    Player1_sim ! stop,
+                    Player2_sim ! stop,
+                    ok;
 
-                    game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Ticker, Golden);
                 true -> % else check_player_colision
                     case check_player_colision(Pos1, Pos2, Alfa1, Alfa2) of
                         hit1 ->
@@ -184,7 +188,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
 
                             Ticker ! reset,
 
-                            game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Ticker, Golden);
+                            game(Controller, {{X1_, Y1_}, {NewPosX, NewPosY}}, Player_sims, Powerups, {P1 + 1, P2}, Timer, Ticker, Golden);
                         hit2 ->
                             Player1_sim ! reset_state,
                             Player2_sim ! reset_param,
@@ -195,13 +199,9 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Ticker, Golden) ->
 
                             Ticker ! reset,
 
-                            game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Ticker, Golden);
+                            game(Controller, {{NewPosX, NewPosY}, {X2_, Y2_}}, Player_sims, Powerups, {P1, P2 + 1}, Timer, Ticker, Golden);
                         nohit ->
-                            game(Controller, {{X1_, Y1_},
-                                             {X2_, Y2_}}, % if no hit call ticker after update_deltas
-                                 {Player1_sim, Player2_sim},
-                                 Powerups,
-                                 {P1, P2}, Ticker, Golden)
+                            game(Controller, {{X1_, Y1_},{X2_, Y2_}}, {Player1_sim, Player2_sim}, Powerups,{P1, P2}, Timer, Ticker, Golden) % if no hit call ticker after update_deltas 
                            end
                     end
             end.
