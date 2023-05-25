@@ -51,10 +51,7 @@ sleep(T) ->
 ticker(GameSim) ->
     receive
         stop ->
-            ok;
-        {reset, GameSim} -> 
-            sleep(?RESET_TIME), %TODO tune
-            ticker(GameSim)
+            ok
     after
         ?TICK_RATE ->
             GameSim ! tick,
@@ -71,7 +68,6 @@ new_pos({X, Y}, Sim) ->
     end.
 
 timer(GameSim) ->
-    sleep(?GAME_DURATION),
     receive
         stop ->
             ok
