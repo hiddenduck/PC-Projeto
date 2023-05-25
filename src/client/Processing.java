@@ -448,7 +448,24 @@ public void draw(){
         }
       } else if(Objects.equals(this.menu, "waitingMenu")){
         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
-          this.menu = "loggedMenu";
+          if(this.isReady) {
+            try {
+              this.connectionManager.send("ready", Boolean.toString(false));
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+            try {
+              this.message = this.connectionManager.receive("ready");
+            } catch (IOException | InterruptedException e) {
+              e.printStackTrace();
+            }
+            if (Objects.equals(this.message, "ok")) {
+              this.isReady = false;
+              this.menu = "loggedMenu";
+            }
+          } else {
+            this.menu = "loggedMenu";
+          }
         }
          else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           try{
