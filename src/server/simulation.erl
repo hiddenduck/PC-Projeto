@@ -4,7 +4,7 @@
 
 -define(DELTA_ANGLE, 0.125).
 -define(DELTA_ACC, 0.125).
--define(RADIUS, 10).
+-define(RADIUS, 15).
 -define(GAME_DURATION, 60000).
 -define(POWER_CHANCE, 150).
 -define(BASE_ACCEL, 0.125).

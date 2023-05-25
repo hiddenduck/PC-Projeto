@@ -325,15 +325,15 @@ private void game() throws IOException{
     strokeWeight(0);
 
     fill(255, 16, 240);
-    ellipse(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 20, 20);
+    ellipse(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 30, 30);
     fill(251, 255, 22);
-    ellipse(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 20, 20);
+    ellipse(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 30, 30);
 
     Triple triple;
     for (Triple box : gameDraw.boxes) {
       triple = this.colorMap.get(box.chars[0]);
       fill(triple.floats[0], triple.floats[1], triple.floats[2]);
-      rect(width*0.0625f + box.floats[0] - 10, height*0.1f + box.floats[1] - 10, 20, 20);
+      rect(width*0.0625f + box.floats[0] - 15, height*0.1f + box.floats[1] - 15, 30, 30);
     }
 
     if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
