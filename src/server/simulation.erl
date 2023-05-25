@@ -12,7 +12,7 @@
 -define(TICK_RATE, 100).
 -define(RESET_TIME, 5000).
 -define(BOX_LIMIT, 10).
--define(DECAY_RATE, 10).
+-define(DECAY_RATE, 0.01).
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
@@ -268,14 +268,14 @@ simulator(PlayerState, Flag) ->
                 decay ->
                     if 
                         Accel > ?BASE_ACCEL ->
-                            Accel_ = Accel - ?DECAY_RATE,
+                            Accel_ = max(Accel - ?DECAY_RATE, ?BASE_ACCEL),
                             io:format("decay Accel ~p", [Accel_]);
                         true ->
                             Accel_ = Accel
                     end,
                     if
                         AngVel > ?BASE_ANGVEL ->
-                            AngVel_ = AngVel - ?DECAY_RATE,
+                            AngVel_ = max(AngVel - ?DECAY_RATE, ?BASE_ANGVEL),
                             io:format("decay AngVel ~p", [AngVel_]);
                         true ->
                             AngVel_ = AngVel
@@ -307,7 +307,7 @@ check_color({X, Y, C}, Sim) ->
 update_deltas({X1, Y1}, Powerups, Sim) ->
     Radius = ?RADIUS * 2, %TODO tune
     HitList = lists:filter(fun({X, Y, _}) -> colision(X1, Y1, X, Y, Radius) end, Powerups),
-    lists:map(fun(X) -> check_color(X, Sim) end, HitList).
+    [check_color(X, Sim) || X <- HitList].
 
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = ?RADIUS * 2,%TODO tune
