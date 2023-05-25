@@ -100,7 +100,8 @@ handle(Request, Map) ->
 		{close_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
-					{ok, maps:remove(Username, Map)};
+					{ok, maps:remove(Username, Map)},
+					level_manager ! {close_account, Username, self()};
 				{ok, Data} ->
 					io:format("~p ~p\n", [Passwd, Data]),
 					{wrong_password, Map};
@@ -116,7 +117,8 @@ handle(Request, Map) ->
 					{invalid_password, Map};
 				_ ->
 					{invalid, Map}
-			end
+			end;
+		_ -> ok
 		%{logout, Username} -> 
 		%	case maps:find(Username, Map) of
 		%		{ok, {Passwd, true}} -> 
@@ -150,14 +152,23 @@ loop(Map) ->
 %Função que corre recursivamente no levels_manager. Espera uma mensagem para manipulação de níveis/jogos e responde diretamente ao cliente. Chama-se recursivamente com possíevis novos estados.
 loop_levels(Map) ->
 	receive
+		{close_account, Username, From} ->
+			case maps:find(Username, Map) of
+				error ->
+					From ! {user_not_exist,level_manager}, 
+					loop_levels(Map);
+				{ok, _} ->
+					From ! {ok, level_manager},
+					loop_levels(maps:remove(Username, Map))
+			end;
 		{set_level, Username, From} ->
 			case maps:find(Username, Map) of
 				error ->
 					From ! {ok,1, level_manager}, 
 					loop_levels(maps:put(Username, {1, 0}, Map));
-				{ok, {Level,_}} ->
-					From ! {user_exists, Level, level_manager},
-					loop_levels(Map)
+				{ok, _} ->
+					From ! {user_exists, 1, level_manager},
+					loop_levels(Map#{Username => {1,0}})
 			end;
 		{level_up, Username, From} ->
 			case maps:find(Username, Map) of
