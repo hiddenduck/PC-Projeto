@@ -175,7 +175,6 @@ private void logRegMenu(){
 }
 
 private void loggedMenu(){
-  strokeWeight(0);
   background(this.menuImage);
   textAlign(CENTER, CENTER);
   fill(206, 235, 251);
@@ -199,6 +198,7 @@ private void loggedMenu(){
   text("Delete Account",width*0.5f,height*0.65f);
   fill(112,128,144);
   rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
+  strokeWeight(0);
 }
 
 private void topMenu(){
@@ -486,8 +486,13 @@ public void draw(){
            this.menu = "waitingMenu";
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
            this.topSize = 2;
-           this.top[0] = "Joaquim";
-           this.top[1] = "António José";
+           try {
+             this.connectionManager.send("top", "10");
+             String leaders = this.connectionManager.receive("top");
+             System.out.println(leaders);
+           } catch (IOException|InterruptedException e){
+             e.printStackTrace();
+           }
            this.menu = "topMenu";
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
 
