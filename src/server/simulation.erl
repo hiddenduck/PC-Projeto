@@ -265,13 +265,13 @@ simulator(PlayerState, Flag) ->
                     simulator(PlayerState, 0);
                 decay ->
                     if 
-                        Accel =< ?BASE_ACCEL ->
+                        Accel >= ?BASE_ACCEL ->
                             Accel_ = Accel - ?DECAY_RATE;
                         true ->
                             Accel_ = Accel
                     end,
                     if
-                        AngVel =< ?BASE_ANGVEL ->
+                        AngVel >= ?BASE_ANGVEL ->
                             AngVel_ = AngVel - ?DECAY_RATE;
                         true ->
                             AngVel_ = AngVel
