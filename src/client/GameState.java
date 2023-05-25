@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -37,6 +38,12 @@ class Triple{
         if (o == null || getClass() != o.getClass()) return false;
         Triple triple = (Triple) o;
         return this.floats[0] == triple.floats[0] && this.floats[1] == triple.floats[1] && triple.chars[0] == this.chars[0];
+    }
+
+    public int hashCode() {
+        int result = Arrays.hashCode(floats);
+        result = 31 * result + Arrays.hashCode(chars);
+        return result;
     }
 }
 
@@ -95,10 +102,6 @@ public class GameState {
 
     public void removeBoxes(Set<Triple> oldBoxes){
         for(Triple triple: oldBoxes){
-            for(Triple box: this.boxes){
-                System.out.println(box.equals(triple));
-            }
-            System.out.println(triple.floats[0] + " "+  triple.floats[1]);
             this.boxes.remove(triple);
         }
     }
