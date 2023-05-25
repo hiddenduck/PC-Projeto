@@ -30,6 +30,8 @@ online() ->
 %A chave é o Username porque é necessário para testar quando um utilizador entra
 lobby(Users, WinMap) ->
     receive
+        {top, 0, From} ->
+            From ! {lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), lobby};
         {top, Number, From} ->
             From ! {lists:sublist(lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), Number), lobby};
         {online, From} ->
@@ -288,12 +290,14 @@ logout(Username, Sock) ->
 
 leaderboard(NumberN, Sock) ->
     Number = lists:droplast(NumberN),
-    lobby ! {top, Number, self()},
+    {Int, []} = string:to_integer(["0" | Number]),
+    lobby ! {top, Int, self()},
     receive 
         {List, lobby} -> 
+            io:format("~p\n", [lists:foldl(fun({U, W}, Acc) -> lists:concat(Acc, U, "_", W, ":") end, "top:", List) ++ "\n"]),
             gen_tcp:send(Sock, 
-                lists:foldl(fun({U, W}, Acc) -> lists:concat(Acc, ":", U, "_", W) end, 
-                    "top", List) 
+                lists:foldl(fun({U, W}, Acc) -> lists:concat(Acc, U, "_", W, ":") end, 
+                    "top:", List) 
                 ++ "\n") 
     end.
 
