@@ -14,8 +14,6 @@ public class ConnectionManager implements AutoCloseable{
 
     private Map<String, Queue<String>> typeMap;
 
-    private boolean isOpen;
-
     private void fillTypeMap(){ // Encher os tipos logo no inicio, já os conhecemos todos
         this.typeMap = new HashMap<>();
         this.typeMap.put("pos", new LinkedList<>());
@@ -35,12 +33,11 @@ public class ConnectionManager implements AutoCloseable{
         this.input = input;
         this.output = output;
         this.socket = socket;
-        this.isOpen = false;
         fillTypeMap();
         this.reader = new Thread(() -> {
             String message;
             try {
-                while (this.isOpen && (message = input.readLine())!=null) {
+                while ((message = input.readLine())!=null) {
                     String[] typeMessage = message.split(":", 2);
                     Queue<String> typeQueue = this.typeMap.get(typeMessage[0]);
                     synchronized (typeQueue) {
@@ -81,10 +78,9 @@ public class ConnectionManager implements AutoCloseable{
         for(Queue<String> queue: typeMap.values()){
             queue.add(null);
         }
-        this.isOpen = false;
+        this.socket.close();
         this.input.close();
         this.output.close();
-        this.socket.close();
-        this.reader.join();
+        //this.reader.join();
     }
 }
