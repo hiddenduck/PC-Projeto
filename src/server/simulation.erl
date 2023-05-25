@@ -104,8 +104,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
             ok;
         {stop, Controller} ->
             {Player1_sim, Player2_sim} = Player_sims,
-            Player1_sim ! stop,
-            Player2_sim ! stop,
+            kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
             ok;
         timeout when P1 == P2 ->
             space_server:golden_point(Controller),
@@ -119,8 +118,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
                 P1 < P2 -> p1
             end,
             space_server:abort_game(Controller, Loser),
-            Player1_sim ! stop,
-            Player2_sim ! stop,
+            kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
             ok;
 
         tick ->
@@ -168,15 +166,13 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
                 X1_ < Boundx_min; X1_ > Boundx_max; Y1_ < Boundy_min; Y1_ > Boundy_max ->
                     
                     space_server:abort_game(Controller, p1),
-                    Player1_sim ! stop,
-                    Player2_sim ! stop,
+                    kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
                     ok;
 
                 X2_ < Boundx_min; X2_ > Boundx_max; Y2_ < Boundy_min; Y2_ > Boundy_max ->
                     
-                    space_server:abort_game(Controller, p1),
-                    Player1_sim ! stop,
-                    Player2_sim ! stop,
+                    space_server:abort_game(Controller, p2),
+                    kill_procs([Player1_sim, Player2_sim, Ticker, Timer]),
                     ok;
 
                 true -> % else check_player_colision
