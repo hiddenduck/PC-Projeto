@@ -55,18 +55,12 @@ lobby(Users, WinMap) ->
         {enter, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
             lobby(Users#{Username => {unready, User}}, WinMap);
-        {unready, Username, User} ->
-            io:format("user unready ~p ~n", [Username]),
-            lobby(Users#{Username => {unready, User}}, WinMap);
-        {ready, Username, User} ->
-            io:format("user ready ~p ~n", [Username]),
-            lobby(Users#{Username => {ready, User}}, WinMap);
-        {game, Username, User} ->
-            io:format("user game ~p ~n", [Username]),
-            lobby(Users#{Username => {game, User}}, WinMap);
         {leave, Username, User} ->
             io:format("user left ~p ~n", [Username]),
             lobby(maps:remove(Username, Users), WinMap);
+        {Status, Username, User} ->
+            io:format("user ~p ~p ~n", [Status, Username]),
+            lobby(Users#{Username => {unready, User}}, WinMap);
         stop -> 
             lists:map(fun({_, Pid})-> Pid ! stop end, maps:values(Users)),
             io:format("lobby terminado\n")
