@@ -100,6 +100,8 @@ public class Processing extends PApplet{
   private List<String> topLevels;
   private int topMinLimit;
 
+  private int topMaxLimit;
+
   private boolean[] keysPressed;
 public void setup(){
   frameRate(30);
@@ -209,7 +211,7 @@ private void topMenu(){
   background(this.menuImage);
   fill(206, 235, 251);
   triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  for(int i=this.topMinLimit; i<10; i++){
+  for(int i=this.topMinLimit; i<topMaxLimit; i++){
     text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*(i/10.0f));
   }
 
@@ -485,11 +487,14 @@ public void draw(){
              this.topMinLimit = 0;
              this.connectionManager.send("top", "");
              String leaders = this.connectionManager.receive("top");
+             if(!Objects.equals(leaders, "")){
              String[] namesLevel = leaders.split(":");
-             for(String nameLevel: namesLevel){
+             this.topMaxLimit = namesLevel.length;
+             for(String nameLevel: namesLevel) {
                String[] stats = nameLevel.split("_");
                this.topNames.add(stats[0]);
                this.topLevels.add(stats[1]);
+              }
              }
            } catch (IOException|InterruptedException e){
              e.printStackTrace();
