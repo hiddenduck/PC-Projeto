@@ -356,9 +356,11 @@ public void draw(){
         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
           try {
             this.connectionManager.close();
+            /*
             for (Communicator communicator : this.communicators) {
               communicator.join();
             }
+            */
           } catch (java.io.IOException|java.lang.InterruptedException e){
             e.printStackTrace();
           }

@@ -77,10 +77,7 @@ public class ConnectionManager implements AutoCloseable{
 
     public void close() throws IOException, InterruptedException{
         for(Queue<String> queue: typeMap.values()){
-            synchronized (queue) {
-                queue.add(null);
-                queue.notify();
-            }
+            queue.add(null);
         }
         this.socket.close();
         this.input.close();
