@@ -197,9 +197,7 @@ game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
                         nohit ->
                             game(Controller, {{X1_, Y1_},{X2_, Y2_}}, {Player1_sim, Player2_sim}, Powerups,{P1, P2}, Timer, Ticker, Golden) % if no hit call ticker after update_deltas 
                     end
-            end;
-        _ ->
-                game(Controller, Pos, Player_sims, OldPowerups, {P1, P2}, Timer, Ticker, Golden)
+            end
     end.
 
 %TODO é preciso transformar este primeiro par numa lista para cada um dos power_ups
@@ -274,9 +272,7 @@ simulator(PlayerState, Flag) ->
                         true ->
                             AngVel_ = AngVel
                     end,
-                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag);
-                _ ->
-                    simulator(PlayerState, Flag)
+                    simulator({{Vx, Vy}, Alfa, {Accel_, AngVel_}}, Flag)
             end
     end.
 
