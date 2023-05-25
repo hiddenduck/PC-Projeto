@@ -323,12 +323,12 @@ private void game() throws IOException{
     pushMatrix();
     translate(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY);
     rotate(gameDraw.alfa);
-    line(0,0, 15, 0);
+    line(0,0, 13.5f, 0);
     popMatrix();
     pushMatrix();
     translate(width*0.0625f + gameDraw.enemyPosX, height*0.1f + gameDraw.enemyPosY);
     rotate(gameDraw.enemyAlfa);
-    line(0,0, 15, 0);
+    line(0,0, 13.5f, 0);
     popMatrix();
     strokeWeight(0);
 
