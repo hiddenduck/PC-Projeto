@@ -32,7 +32,8 @@ lobby(Users, WinMap) ->
     io:format("~p\n", [WinMap]),
     receive
         {top, 0, From} ->
-            From ! {lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), lobby},
+            From ! {lists:sort(fun({U1, V1}, {U2, V2}) -> 
+                if V1 =:= V2 -> U1<U2; true -> V1>V2 end end, maps:to_list(WinMap)), lobby},
             lobby(Users,WinMap);
         {top, Number, From} ->
             From ! {lists:sublist(lists:sort(fun({_, V1}, {_, V2}) -> V1 > V2 end, maps:to_list(WinMap)), Number), lobby},
