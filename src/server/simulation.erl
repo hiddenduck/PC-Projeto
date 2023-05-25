@@ -255,8 +255,10 @@ simulator(PlayerState, Flag) ->
                     io:format("?:~p", [Delta*(?BASE_ANGVEL/AngVel)]),
                     simulator({{Vx, Vy}, Alfa, {Accel, AngVel + Delta*(?BASE_ANGVEL/AngVel)}}, Flag);
                 reset_state ->
+                    io:format("reset state\n"),
                     simulator({{0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 reset_param ->
+                    io:format("reset param\n"),
                     simulator({{Vx, Vy}, Alfa, {?BASE_ACCEL, ?BASE_ANGVEL}}, Flag); %TODO define starting values!!!!!!!!!!!!!!!!!!!!!!
                 {return_state, From} ->
                     From ! {PlayerState, self()},
