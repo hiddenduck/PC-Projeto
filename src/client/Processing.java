@@ -506,8 +506,10 @@ public void draw(){
        } else if(Objects.equals(this.menu, "topMenu")){
          if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
            this.menu = "loggedMenu";
-         } else if(true){
-
+         } else if(this.topMinLimit+11 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
+            this.topMinLimit += 10;
+         } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
+            this.topMinLimit -= 10;
          }
        }
     }
@@ -520,15 +522,6 @@ public void draw(){
         case ('w') -> this.keysPressed[1] = true;
         case ('d') -> this.keysPressed[2] = true;
       }
-      /*
-      if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
-        try {
-          this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0)) + ":" + Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-       */
     }else{
       if(this.user.active){
         this.user.keyPressed(key);
