@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.util.List;
 
 public class Processing extends PApplet{
   private ConnectionManager connectionManager;
@@ -94,8 +95,10 @@ public class Processing extends PApplet{
 
   private Map<Character, Triple> colorMap;
 
-  private String[] top;
-  private int topSize;
+  private List<String> topNames;
+
+  private List<String> topLevels;
+  private int topMinLimit;
 
   private boolean[] keysPressed;
 public void setup(){
@@ -127,8 +130,8 @@ public void setup(){
   this.colorMap.put('g', new Triple(34,139,34));
   this.colorMap.put('b', new Triple(0,191,255));
 
-  this.top = new String[10];
-  this.topSize = 0;
+  this.topNames = new ArrayList<>();
+  this.topLevels = new ArrayList<>();
 }
 
 private void startMenu(){
@@ -170,7 +173,7 @@ private void logRegMenu(){
     fill(255,160,122);
   text(message, width*0.5f, height*0.80f);
   fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
   fill(112,128,144);
   rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
 }
@@ -179,7 +182,7 @@ private void loggedMenu(){
   background(this.menuImage);
   textAlign(CENTER, CENTER);
   fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
   fill(206, 235, 251);
   textSize(width*0.05f);
   text("Welcome " + this.user.getText(),width/2.0f,height*0.05f);
@@ -205,16 +208,21 @@ private void loggedMenu(){
 private void topMenu(){
   background(this.menuImage);
   fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
-  for(int i=1; i<=this.topSize; i++){
-    text(this.top[i-1], width*0.5f, height*(i/10.0f));
+  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+  for(int i=this.topMinLimit; i<10; i++){
+    text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*(i/10.0f));
   }
+
+  if(this.topMinLimit+11 <= this.topNames.size())
+    triangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f);
+  if(this.topMinLimit>=10)
+    triangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f);
 }
 
 private void waitingMenu(){
   background(this.menuImage);
   fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
   strokeWeight(10);
   fill(75,37,109);
   rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
@@ -264,7 +272,7 @@ private void game() throws IOException{
     this.isInGame = false;
     this.level = Integer.parseInt(statusArg[1]);
     fill(206, 235, 251);
-    triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
   } else if(Objects.equals(statusArg[0], "l")){
     background(this.menuImage);
     textSize(width*0.1f);
@@ -272,7 +280,7 @@ private void game() throws IOException{
     text("Defeat", width*0.5f, height*0.5f);
     this.isInGame = false;
     fill(206, 235, 251);
-    triangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
   } else {
     background(this.menuImage);
     fill(119,136,153);
@@ -334,13 +342,21 @@ public void draw(){
     return Math.abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0f);
   }
 
+  private boolean isInsideTriangle(float x1, float y1, float x2, float y2, float x3, float y3){
+    return triangleArea(x1, y1, x2, y2, x3, y3) ==
+            triangleArea(mouseX, mouseY, x2, y2, x3, y3) +
+                    triangleArea(x1, y1, mouseX, mouseY, x3, y3) +
+                    triangleArea(x1, y1, x2, y2, mouseX, mouseY);
+  }
+
+  private boolean isInsideBox(float x, float y, float width, float height){
+    return mouseX > x && mouseX < x + width && mouseY > y && mouseY < y + height;
+  }
+
   public void mousePressed(){
     if(!this.isInGame){
        if(Objects.equals(this.menu, "game")){
-         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
-                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
-                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
-                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
            this.menuImage = loadImage("images/space2.jpg");
            this.isReady = false;
            this.menu = "waitingMenu";
@@ -369,10 +385,7 @@ public void draw(){
       } else if(Objects.equals(this.menu, "logRegMenu")){
         this.user.select(mouseX, mouseY);
         this.password.select(mouseX,mouseY);
-        if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
-          triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
-          triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
-          triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+        if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
           this.message = "";
           this.user.reset();
           this.password.reset();
@@ -413,10 +426,7 @@ public void draw(){
           }
         }
       } else if(Objects.equals(this.menu, "waitingMenu")){
-        if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
-                triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
-                        triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
-                        triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+        if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
           this.menu = "loggedMenu";
         }
          else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
@@ -452,10 +462,7 @@ public void draw(){
           }
          }
       } else if(Objects.equals(this.menu, "loggedMenu")){
-         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
-                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
-                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
-                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)) {
+         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
            try {
              this.connectionManager.send("logout", "");
            } catch (IOException e){
@@ -479,10 +486,16 @@ public void draw(){
            this.isReady = false;
            this.menu = "waitingMenu";
          } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
-           this.topSize = 2;
            try {
-             this.connectionManager.send("top", "10");
+             this.topMinLimit = 0;
+             this.connectionManager.send("top", "");
              String leaders = this.connectionManager.receive("top");
+             String[] namesLevel = leaders.split(":");
+             for(String nameLevel: namesLevel){
+               String[] stats = nameLevel.split("_");
+               this.topNames.add(stats[0]);
+               this.topLevels.add(stats[1]);
+             }
            } catch (IOException|InterruptedException e){
              e.printStackTrace();
            }
@@ -491,11 +504,10 @@ public void draw(){
 
          }
        } else if(Objects.equals(this.menu, "topMenu")){
-         if(triangleArea(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f) ==
-                 triangleArea(mouseX, mouseY, 0, width*0.025f, width*0.05f, width*0.05f) +
-                         triangleArea(width*0.05f, 0, mouseX, mouseY, width*0.05f, width*0.05f) +
-                         triangleArea(width*0.05f, 0, 0, width*0.025f, mouseX, mouseY)){
+         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
            this.menu = "loggedMenu";
+         } else if(true){
+
          }
        }
     }
