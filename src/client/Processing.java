@@ -313,24 +313,24 @@ private void game() throws IOException{
         fill(255);
     text(gameDraw.point + ":" + gameDraw.enemyPoint, width*0.5f, height*0.05f);
 
+    fill(255, 16, 240);
+    ellipse(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 30, 30);
+    fill(251, 255, 22);
+    ellipse(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 30, 30);
+
     strokeWeight(6);
     fill(0);
     pushMatrix();
     translate(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY);
     rotate(gameDraw.alfa);
-    line(0,0, 15, 0);
+    line(0,0, 13.5f, 0);
     popMatrix();
     pushMatrix();
     translate(width*0.0625f + gameDraw.enemyPosX, height*0.1f + gameDraw.enemyPosY);
     rotate(gameDraw.enemyAlfa);
-    line(0,0, 15, 0);
+    line(0,0, 13.5f, 0);
     popMatrix();
     strokeWeight(0);
-
-    fill(255, 16, 240);
-    ellipse(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 30, 30);
-    fill(251, 255, 22);
-    ellipse(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 30, 30);
 
     Triple triple;
     for (Triple box : gameDraw.boxes) {
