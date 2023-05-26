@@ -75,9 +75,6 @@ lobby(Users, WinMap) ->
         {online, From} ->
             From ! {maps:keys(Users), lobby},
             lobby(Users,WinMap);
-        {loss, Username, User} ->
-            io:format("user loss ~p ~n", [Username]),
-            lobby(Users#{Username => {unready, User}}, WinMap);
         {win, Username, User} ->
             io:format("user won ~p ~n", [Username]),
             case maps:find(Username, WinMap) of
