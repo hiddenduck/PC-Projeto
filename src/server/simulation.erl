@@ -1,6 +1,6 @@
 -module(simulation).
 
--export([start_game/1, change_speed/1, change_angle/2]).
+-export([start_game/1, change_speed/1, change_angle/2, leave/2, buttons/3]).
 
 -define(DELTA_ANGLE, 0.125).
 -define(DELTA_ACC, 0.125).
@@ -32,6 +32,12 @@ start_game(Info) ->
         false, %Golden
         0      %Flag
     ).
+
+buttons(Buttons, Game, Player) ->
+    Game ! {Buttons, Player}.
+
+leave(Game, Player) ->
+    Game ! {forfeit, Player}.
 
 change_speed(PlayerSim) ->
     PlayerSim ! speed_up.
@@ -107,9 +113,18 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
 
             kill_procs([Timer, Ticker]),
             ok;
-        {A,W,D,P1Proc} ->
+        {forfeit, Player} ->
+            space_server:end_game(
+              case Player of
+                  P1Proc -> {P2Proc, P1Proc};
+                  P2Proc -> {P1Proc, P2Proc}
+              end),
+
+            kill_procs([Timer, Ticker]),
+            ok;
+        {{A,W,D},P1Proc} ->
             game(GameInfo, Powerups, P1State, P2State, {A, W, D}, P2Keys, Points, Timer, Ticker, Golden, Flag);
-        {A,W,D,P2Proc} ->
+        {{A,W,D},P2Proc} ->
             game(GameInfo, Powerups, P1State, P2State, P1Keys, {A, W, D}, Points, Timer, Ticker, Golden, Flag);
         tick ->
 

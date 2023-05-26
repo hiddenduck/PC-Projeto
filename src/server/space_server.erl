@@ -418,7 +418,7 @@ player(Sock, Game, Username) ->
                     Data = lists:droplast(DataN),
                     ["move", Left, Front, Right] = string:split(Data, ":", all),
                     %io:format("~p ~p ~p ~n", [Left, Front, Right]),
-                    simulation:buttons({Left == "t", Front == "t", Right == "t"}),
+                    simulation:buttons({Left == "t", Front == "t", Right == "t"}, Game, self()),
                     player(Sock, Game, Username);
                 {tcp_closed, _} -> 
                     leave_game(Username, Game);
