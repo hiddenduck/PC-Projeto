@@ -117,20 +117,6 @@ loop(Map) ->
 
 handle_levels(Request, Map) ->
 	case Request of
-		{close_account, Username, file_manager} ->
-			case maps:find(Username, Map) of
-				error ->
-					{user_not_exist, Map};
-				{ok, _} ->
-					{ok, maps:remove(Username, Map)}
-			end;
-		{set_level, Username, file_manager} ->
-			case maps:find(Username, Map) of
-				error ->
-					{ok, maps:put(Username, {1, 0}, Map)};
-				{ok, _} ->
-					{user_exists, Map#{Username => {1,0}}}
-			end;
 		{check_level, Username} ->
 			case maps:find(Username, Map) of 
 				error ->
@@ -158,6 +144,20 @@ handle_levels(Request, Map) ->
 %Função que corre recursivamente no levels_manager. Espera uma mensagem para manipulação de níveis/jogos e responde diretamente ao cliente. Chama-se recursivamente com possíevis novos estados.
 loop_levels(Map) ->
 	receive
+		{set_level, Username, file_manager} ->
+			case maps:find(Username, Map) of
+				error ->
+					{ok, maps:put(Username, {1, 0}, Map)};
+				{ok, _} ->
+					{user_exists, Map#{Username => {1,0}}}
+			end;
+		{close_account, Username, file_manager} ->
+			case maps:find(Username, Map) of
+				error ->
+					{user_not_exist, Map};
+				{ok, _} ->
+					{ok, maps:remove(Username, Map)}
+			end;
 		{Request, From} ->
 			{Res, NextState} = handle_levels(Request, Map),
 			From ! {Res, level_manager},
