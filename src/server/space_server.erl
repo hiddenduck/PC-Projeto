@@ -1,5 +1,5 @@
 -module(space_server).
--export([start/1, stop/0, end_game/2, start_game/2, positions/5, boxes/5, score/5, golden_point/2, online/0]). % server:start(1234)
+-export([start/1, stop/0, end_game/1, start_game/2, positions/5, boxes/5, score/5, golden_point/2, online/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
 -define(GAMETIME, 120000).
@@ -31,10 +31,9 @@ score(FstPoints, SndPoints, FstPlayer, SndPlayer, Game) ->
     SndPlayer ! {score, SndPoints, FstPoints, Game}.
 
 %Termina o jogo, dado um vencedor, avisando todos os intervenientes
-end_game({Winner, WinnerUsername}, {Loser, LoserUsername}) ->
-    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(WinnerUsername, LoserUsername),
-    Winner ! {victory, WinnerLevel, self()},
-    Loser ! {defeat, LoserLevel, self()},
+end_game({Winner, Loser}) ->
+    Winner ! {victory, self()},
+    Loser ! {defeat, self()},
     game_manager ! {end_game, self()}.
 
 %Responsabilidade do simulation
@@ -174,13 +173,13 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
         {ok, FstPlayer} -> 
             receive
                 {ok, SndPlayer} -> 
-                    simulation:start_game({FstUsername, FstPlayer, SndUsername, SndPlayer})
+                    simulation:start_game({FstPlayer, SndPlayer})
                 after 15000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         {ok, SndPlayer} -> 
             receive
                 {ok, FstPlayer} -> 
-                    simulation:start_game({FstUsername, FstPlayer, SndUsername, SndPlayer})
+                    simulation:start_game({FstPlayer, SndPlayer})
                 after 15000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
@@ -375,11 +374,12 @@ player(Sock, Game, Username) ->
     %io:format("player_from\n"),
     receive
         stop -> gen_tcp:close(Sock);
-        {victory, Level, Game} -> 
+        {victory, Game} -> 
             lobby ! {win, Username, self()},
+            {ok, Level} = file_manager:check_level(Username),
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
             user(Sock, Username);
-        {defeat, Level, Game} -> 
+        {defeat, Game} -> 
             lobby ! {loss, Username, self()},
             gen_tcp:send(Sock, "game:l\n"),
             user(Sock, Username)

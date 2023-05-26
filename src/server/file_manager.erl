@@ -8,7 +8,7 @@
 		online/0,
 		handle/2,
 		check_level/1,
-		end_game/2]).
+		win/1]).
 
 %Inicia o servidor e o levels_manager como processos que correm determinadas funções.
 
@@ -50,8 +50,8 @@ check_level(Username) ->
 	invoke_level({check_level, Username}).
 
 %Informa o level_manager que um jogo terminou e indica o respetivo vencedor. Recebe como resposta os novos níveis dos dois jogadores.
-end_game(Winner, Loser) ->
-	invoke_level({end_game, Winner, Loser}).
+win(Winner) ->
+	invoke_level({win, Winner}).
 
 %Permite fechar a conta de um jogador.
 close_account(Username, Passwd) ->
@@ -124,20 +124,15 @@ handle_levels(Request, Map) ->
 				{ok, {Level, _}} ->
 					{{ok, Level}, Map}
 			end;
-		{end_game, Winner, Loser} ->
+		{win, Winner, Loser} ->
 			case maps:find(Winner, Map) of 
 				error ->
 					{{invalid_winner, 0, 0}, Map};
 				{ok, {Level, Wins}} ->
-					case maps:find(Loser, Map) of 
-						error ->
-							{{invalid_loser, 0, 0}, Map};
-						{ok, {OtherLevel, _}} ->
-							if Wins+1 == Level*2 -> NewLevel = Level+1, NewWins = 0 ;
-							   true -> NewLevel = Level, NewWins = Wins+1
-							end,
-							{{ok, NewLevel, OtherLevel}, Map#{Winner => {NewLevel, NewWins}}}
-					end
+					if Wins+1 == Level*2 -> NewLevel = Level+1, NewWins = 0 ;
+						true -> NewLevel = Level, NewWins = Wins+1
+					end,
+					{{ok, NewLevel}, Map#{Winner => {NewLevel, NewWins}}}
 			end
 	end.
 
