@@ -147,7 +147,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             if % check players in bounds
                 X1_ < Boundx_min + ?RADIUS; X1_ > Boundx_max - ?RADIUS; Y1_ < Boundy_min + ?RADIUS; Y1_ > Boundy_max - ?RADIUS ->
                     
-                    space_server:end_game(P2Proc, P1Proc),
+                    space_server:end_game({P2Proc, P1Proc}),
                     kill_procs([Timer, Ticker]),
                     ok;
 
