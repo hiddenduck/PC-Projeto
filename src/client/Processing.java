@@ -284,7 +284,14 @@ public class Processing extends PApplet{
       text("Not Ready", width*0.5f,  height*0.42f);
     }
     strokeWeight(0);
-    if(Objects.equals(this.gameState.gameStatus, "h")) {
+    GameState gameCopy;
+    this.gameState.lrw.writeLock().lock();
+    try {
+      gameCopy = this.gameState.copy();
+    } finally {
+      this.gameState.lrw.writeLock().unlock();
+    }
+    if(Objects.equals(gameCopy.gameStatus, "h") || Objects.equals(gameCopy.gameStatus, "s")) {
       this.menuImage = loadImage("images/loading.jpg");
       this.menu = "loadingMenu";
     }
@@ -293,7 +300,14 @@ public class Processing extends PApplet{
   private void loadingMenu(){
     background(this.menuImage);
     text("Loading", width*0.5f, height*0.5f);
-    if(Objects.equals(this.gameState.gameStatus, "s")) {
+    GameState gameCopy;
+    this.gameState.lrw.writeLock().lock();
+    try {
+      gameCopy = this.gameState.copy();
+    } finally {
+      this.gameState.lrw.writeLock().unlock();
+    }
+    if(Objects.equals(gameCopy.gameStatus, "s")) {
       this.menuImage = loadImage("images/space3.jpg");
       this.menu = "game";
       this.gameState.point = "0";
