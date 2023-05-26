@@ -38,7 +38,6 @@ end_game({Winner, Loser}) ->
 %Responsabilidade do simulation
 %Começa o jogo para um dado jogador e uma posição inicial
 start_game(Player, Pos) ->
-    io:format("~p\n", [Player]),
     Player ! {start_game, Pos, self()}.
 
 %Início do registo do server, começa com um ListeningSocket para ir gerando um para cada jogador
