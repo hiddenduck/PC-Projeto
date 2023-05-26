@@ -38,6 +38,7 @@ end_game({Winner, Loser}) ->
 %Responsabilidade do simulation
 %Começa o jogo para um dado jogador e uma posição inicial
 start_game(Player, Pos) ->
+    io:format("~p\n", [Player]),
     Player ! {start_game, Pos, self()}.
 
 %Início do registo do server, começa com um ListeningSocket para ir gerando um para cada jogador
@@ -301,6 +302,7 @@ unready(Username, Game) ->
 user_ready(Sock, Game, Username) -> 
     receive
         {sync, Game} -> 
+            Game ! {ok, self()},
             lobby ! {game, Username, self()},
             %TODO arranjar uma cena melhor
             %Hol' Up
@@ -348,7 +350,8 @@ loading(Sock, Game, Username) ->
         {start_game, {{XP, YP, AP}, {XE, YE, AE}}, Game} ->
             %game:start
             gen_tcp:send(Sock, lists:concat(["pos:", XP, ":", YP , ":", AP,
-                                "\nposE:", XE, ":", YE, ":", AE, "\ngame:s\n"])),
+                                "\nposE:", XE, ":", YE, ":", AE, "\n"])),
+            gen_tcp:send(Sock, "game:s\n"),
             player(Sock, Game, Username);
         {abort, Game} ->
             %TODO ver isto com o Carlos

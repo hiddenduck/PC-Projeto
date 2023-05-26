@@ -15,10 +15,12 @@
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
-start_game(Info) ->
+start_game({P1Proc, P2Proc} = Info) ->
     P1State = {{100, 400}, {0, 0}, 0, {0.125,0.125}},
     P2State = {{400, 400}, {0, 0}, math:pi(), {0.125,0.125}},
     Self = self(),
+    space_server:start_game(P1Proc, {{100, 400, 0}, {400, 400, math:pi()}}),
+    space_server:start_game(P2Proc, {{400, 400, math:pi()}, {100, 400, 0}}),
     game(
         Info,
         [],     %Powerups
