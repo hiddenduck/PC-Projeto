@@ -293,7 +293,9 @@ user(Sock, Username) ->
         {tcp_error, _, _} ->
             lobby ! {leave, Username, self()};
         stop ->
-            gen_tcp:close(Sock)
+            gen_tcp:close(Sock);
+        _ ->
+            user(Sock, Username)
     end.
 
 unready(Username, Game) ->
@@ -337,8 +339,14 @@ user_ready(Sock, Game, Username) ->
             unready(Username, Game),
             lobby ! {leave, Username, self()};
         stop ->
-            gen_tcp:close(Sock)
+            gen_tcp:close(Sock);
+        _ ->
+            user_ready(Sock, Game, Username)
     end.
+
+leave_game(Username, Game) ->
+    simulation:leave(Game, self()),
+    lobby ! {leave, Username, self()}.
 
 loading(Sock, Game, Username) ->
     receive
@@ -354,13 +362,13 @@ loading(Sock, Game, Username) ->
             gen_tcp:send(Sock, "game:a\n"),
             user(Sock, Username);
         {tcp_closed, _} -> 
-            simulation:leave(Game, self()),
-            lobby ! {leave, Username, self()};
+            leave_game(Username, Game);
         {tcp_error, _, _} -> 
-            simulation:leave(Game, self()),
-            lobby ! {leave, Username, self()};
+            leave_game(Username, Game);
         stop ->
-            gen_tcp:close(Sock)
+            gen_tcp:close(Sock);
+        _ -> 
+            loading(Sock, Game, Username)
     end.
 
 player(Sock, Game, Username) ->
@@ -368,9 +376,13 @@ player(Sock, Game, Username) ->
     receive
         stop -> gen_tcp:close(Sock);
         {victory, Level, Game} -> 
-            gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
+            lobby ! {win, Username, self()},
+            gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
+            user(Sock, Username);
         {defeat, Level, Game} -> 
-            gen_tcp:send(Sock, "game:l\n")
+            lobby ! {loss, Username, self()},
+            gen_tcp:send(Sock, "game:l\n"),
+            user(Sock, Username)
         after 0 ->
             %io:format("player_from_after\n"),
             receive
@@ -425,10 +437,9 @@ player(Sock, Game, Username) ->
                     end,
                     player(Sock, Game, Username);
                 {tcp_closed, _} -> 
-                    simulation:leave(Game, self()),
-                    lobby ! {leave, Username, self()};
+                    leave_game(Username, Game);
                 {tcp_error, _, _} -> 
-                    simulation:leave(Game, self()),
-                    lobby ! {leave, Username, self()}
+                    leave_game(Username, Game);
+                _ -> player(Sock, Game, Username)
             end
     end.
