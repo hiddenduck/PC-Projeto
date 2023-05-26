@@ -163,10 +163,10 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                     {{Accel2_, AngVel2_}, HitList2} = update_deltas({X2_, Y2_}, Powerups, Accel2, AngVel2),
 
                     case {gen_random_box({X1_, Y1_, null}, {X2_, Y2_, null}, Powerups, {Boundx_max, Boundy_max}), HitList1 ++ HitList2} of
-                        {null, []} ->
+                        {[], []} ->
                             Powerups_ = Powerups;
                         {Powerup, HitList} ->
-                            Powerups_ = [Powerup | Powerups],
+                            Powerups_ = Powerup ++ [Powerups], % this is the correct order to do this in because erlang copies the left list not the right https://www.erlang.org/doc/efficiency_guide/listhandling
                             space_server:boxes([Powerup], HitList, P1Proc, P2Proc, self())
                     end,
                     
@@ -209,9 +209,9 @@ gen_random_box(Pos1, Pos2, Powerups, Bounds) ->
                     2 -> red
                 end,
             {X, Y} = get_random_pos([Pos1 , Pos2 | Powerups], Bounds),
-            {X, Y, C};
+            [{X, Y, C}];
         true ->
-            null
+            []
     end.
 
 process_keys({A, W, D}, Vx, Vy, Alfa, Accel, AngVel) ->
