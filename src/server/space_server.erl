@@ -422,19 +422,7 @@ player(Sock, Game, Username) ->
                     Data = lists:droplast(DataN),
                     ["move", Left, Front, Right] = string:split(Data, ":", all),
                     %io:format("~p ~p ~p ~n", [Left, Front, Right]),
-                    if 
-                        Left =:= "t", Right =:= "f"->
-                            %left_pressed 
-                            simulation:change_angle(Game,-1);
-                        Right =:= "t", Left =:= "f" -> 
-                            simulation:change_angle(Game,1);
-                        true -> ok
-                    end,
-                    if 
-                        Front =:= "t" -> 
-                            simulation:change_speed(Game);
-                        true -> ok
-                    end,
+                    simulation:buttons({Left == "t", Front == "t", Right == "t"}),
                     player(Sock, Game, Username);
                 {tcp_closed, _} -> 
                     leave_game(Username, Game);
