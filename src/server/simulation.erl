@@ -162,7 +162,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                     {{Accel1_, AngVel1_}, HitList1} = update_deltas({X1_, Y1_}, Powerups, Accel1, AngVel1),
                     {{Accel2_, AngVel2_}, HitList2} = update_deltas({X2_, Y2_}, Powerups, Accel2, AngVel2),
 
-                    case {gen_random_box({X1_, Y1_}, {X2_, Y2_}, Powerups, {Boundx_max, Boundy_max}), HitList1 ++ HitList2} of
+                    case {gen_random_box({X1_, Y1_, null}, {X2_, Y2_, null}, Powerups, {Boundx_max, Boundy_max}), HitList1 ++ HitList2} of
                         {null, []} ->
                             Powerups_ = Powerups;
                         {Powerup, HitList} ->
@@ -172,7 +172,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                     
                     case check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) of
                         hit1 ->
-                            {X_, Y_} = get_random_pos([{X1_, Y1_, Alfa1_} | Powerups], {Boundx_max, Boundy_max}),
+                            {X_, Y_} = get_random_pos([{X1_, Y1_, Alfa1_} | Powerups_], {Boundx_max, Boundy_max}),
                             P1State_ = {{X1_, Y1_}, {V1x_, V1y_}, Alfa1_, {?BASE_ACCEL, ?BASE_ANGVEL}},
                             P2State_ = {{X_, Y_}, {0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}},
                             Points_ = {P1 + 1, P2},
