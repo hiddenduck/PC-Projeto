@@ -46,7 +46,7 @@ start_game(Player, Pos) ->
 %Regista dois processos, um como o lobby e outro como o game_manager, depois torna-se no acceptor
 server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
-    spawn(fun() -> file_manager:start() end),
+    file_manager:start(),
     spawn(fun() -> acceptor(LSock) end),
     register(lobby, spawn(fun()-> lobby(#{}, #{}) end)),
     register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
