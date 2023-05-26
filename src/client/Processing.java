@@ -535,6 +535,7 @@ public void draw(){
            this.menu = "loggedMenu";
          } else if(this.topMinLimit+13 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
             this.topMinLimit += 12;
+            this.topMaxLimit = Math.min(12, this.topNames.size()-12);
          } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
             this.topMinLimit -= 12;
          }
