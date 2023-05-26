@@ -146,17 +146,15 @@ loop_levels(Map) ->
 	receive
 		{set_level, Username, file_manager} ->
 			case maps:find(Username, Map) of
-				error ->
-					{ok, maps:put(Username, {1, 0}, Map)};
-				{ok, _} ->
-					{user_exists, Map#{Username => {1,0}}}
+				_ ->
+					loop_levels(Map#{Username => {1,0}})
 			end;
 		{close_account, Username, file_manager} ->
 			case maps:find(Username, Map) of
 				error ->
-					{user_not_exist, Map};
+					loop_levels(Map);
 				{ok, _} ->
-					{ok, maps:remove(Username, Map)}
+					loop_levels(maps:remove(Username, Map))
 			end;
 		{Request, From} ->
 			{Res, NextState} = handle_levels(Request, Map),
