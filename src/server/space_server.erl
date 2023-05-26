@@ -383,7 +383,6 @@ player(Sock, Game, Username) ->
                     lobby ! {loss, Username, self()},
                     gen_tcp:send(Sock, "game:l\n"),
                     user(Sock, Username);
-
                 {golden, Game} -> 
                     gen_tcp:send(Sock, "game:g\n"),
                     player(Sock, Game, Username);
@@ -412,10 +411,10 @@ player(Sock, Game, Username) ->
                     ["move", Left, Front, Right] = string:split(Data, ":", all),
                     %io:format("~p ~p ~p ~n", [Left, Front, Right]),
                     if 
-                        Left =:= "t" ->
+                        Left =:= "t", Right =:= "f"->
                             %left_pressed 
                             simulation:change_angle(Game,-1);
-                        Right =:= "t" -> 
+                        Right =:= "t", Left =:= "f" -> 
                             simulation:change_angle(Game,1);
                         true -> ok
                     end,
