@@ -153,7 +153,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
 
                 X2_ < Boundx_min + ?RADIUS; X2_ > Boundx_max - ?RADIUS; Y2_ < Boundy_min + ?RADIUS; Y2_ > Boundy_max - ?RADIUS ->
                     
-                    space_server:end_game(P1Proc, P2Proc),
+                    space_server:end_game({P1Proc, P2Proc}),
                     kill_procs([Timer, Ticker]),
                     ok;
                     
