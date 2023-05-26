@@ -119,7 +119,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             space_server:end_game(
               case Player of
                   P2Proc -> {P1Proc, P2Proc};
-                  P1Proc -> {P1Proc, P2Proc}
+                  P1Proc -> {P2Proc, P1Proc}
               end),
 
             kill_procs([Timer, Ticker]),
@@ -136,7 +136,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             {X1_, Y1_} = {X1 + V1x, Y1 + V1y},
             {X2_, Y2_} = {X2 + V2x, Y2 + V2y},
 
-            space_server:positions({X1_, Y1_}, {X2_, Y2_}, P1Proc, P2Proc, self()),
+            space_server:positions({X1_, Y1_, Alfa1_}, {X2_, Y2_, Alfa2_}, P1Proc, P2Proc, self()),
             
             Boundx_min = 0,%TODO tune
             Boundx_max = 700,%TODO tune
@@ -177,7 +177,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                             P2State_ = {{X_, Y_}, {0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}},
                             Points_ = {P1 + 1, P2},
 
-                            space_server:positions({X1_, Y1_}, {X_, Y_}, P1Proc, P2Proc, self()),
+                            space_server:positions({X1_, Y1_, Alfa1_}, {X_, Y_, 0}, P1Proc, P2Proc, self()),
                             space_server:score(P1 + 1, P2, P1Proc, P2Proc, self());
 
                         hit2 ->
@@ -186,7 +186,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                             P1State_ = {{X_, Y_}, {0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}},
                             Points_ = {P1, P2 + 1},
 
-                            space_server:positions({X_, Y_}, {X2_, Y2_}, P1Proc, P2Proc, self()),
+                            space_server:positions({X_, Y_, 0}, {X2_, Y2_, Alfa2_}, P1Proc, P2Proc, self()),
                             space_server:score(P1, P2 + 1, P1Proc, P2Proc, self());
 
                         nohit ->
