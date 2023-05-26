@@ -172,7 +172,12 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                     {{Accel1_, AngVel1_}, HitList1} = update_deltas({X1_, Y1_}, Powerups_, Accel1, AngVel1),
                     {{Accel2_, AngVel2_}, HitList2} = update_deltas({X2_, Y2_}, Powerups_, Accel2, AngVel2),
 
-                    space_server:boxes(ToAdd, HitList1 ++ HitList2, P1Proc, P2Proc, self()),
+                    case {ToAdd, HitList1 ++ HitList2} of
+                        {[], []} ->
+                            ok;
+                        {A, R} ->
+                            space_server:boxes(A, R, P1Proc, P2Proc, self())
+                    end,
                     
                     case check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) of
                         hit1 ->
