@@ -2,7 +2,6 @@
 -export([start/1, stop/0, end_game/1, start_game/2, positions/5, boxes/5, score/5, golden_point/2, online/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
--define(GAMETIME, 120000).
 
 start(Port) -> register(?MODULE, spawn(fun() -> server(Port) end)), ok.
 
@@ -118,20 +117,20 @@ game_manager(RoomMap, GameControllers) ->
                     User ! {error_not_ready, game_manager}    
             end,
             game_manager(New_Map, GameControllers);
-        {ready, Level, Username, User} ->
+        {ready, Level, User} ->
             case maps:find(Level, RoomMap) of
                 {ok, {User, _}} ->
                     User ! {error_already_ready, game_manager},
                     game_manager(RoomMap, GameControllers);
                 {ok, {_, Controller}} ->
                     %juntar-se ao jogo
-                    Controller ! {start, Username, User, game_manager},
+                    Controller ! {start, User, game_manager},
                     User ! {ok, Controller, game_manager},
                     New_Map = maps:remove(Level, RoomMap),
                     game_manager(New_Map, [Controller | GameControllers]);
                 _ ->
                     %criar uma espera
-                    Controller = spawn(fun()-> ready([{Username,User}]) end),
+                    Controller = spawn(fun()-> ready([User]) end),
                     User ! {ok, Controller, game_manager},
                     game_manager(RoomMap#{Level => {User, Controller}}, GameControllers)
             end;
@@ -144,14 +143,14 @@ game_manager(RoomMap, GameControllers) ->
 %Função de espera que correrá depois da chamada ready de um utilizador
 %Um jogador dá ready. 
 %O segundo jogador dá ready e depois o primeiro cancela o jogo, enquanto o ecrã dele ainda não recebeu o ok
-ready([{FstUsername, FstPlayer}]) ->
+ready([FstPlayer]) ->
     receive 
         %Este abort tem de vir de parte do game_manager aquando de um unready
         {abort, game_manager} -> ok;
         %Não pode receber o abort do primeiro jogador porque isso tem de ser testado no sync_up
         %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
-        {start, SndUsername, SndPlayer, game_manager} ->
-            sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
+        {start, SndPlayer, game_manager} ->
+            sync_up({FstPlayer, SndPlayer})
     end.
 
 abort_sync(FstPlayer, SndPlayer) ->
@@ -166,7 +165,7 @@ sync(FstPlayer, SndPlayer) ->
 %Função chamada depois da ligação de ambos os jogadores, para começar a Simulação e sintonizar ambos os jogadores
 %Se algum for cancelado dentro de um minuto o jogo não ocorre e pontos não são dados
 %As simulações são passadas para cada um dos jogadores
-sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
+sync_up({FstPlayer, SndPlayer}) ->
     %Avisar os utilizadores para entrarem no jogo
     sync(FstPlayer, SndPlayer),
     receive
@@ -281,7 +280,7 @@ user(Sock, Username) ->
             end;
         {tcp, _, "ready:true\n"} ->
             {ok, Level} = file_manager:check_level(Username),
-            game_manager ! {ready, Level, Username, self()},
+            game_manager ! {ready, Level, self()},
             lobby ! {ready, Username, self()},
             receive 
                 {ok, Game, game_manager} -> gen_tcp:send(Sock, "ready:ok\n"), user_ready(Sock, Game, Username)
@@ -352,8 +351,7 @@ loading(Sock, Game, Username) ->
         {start_game, {{XP, YP, AP}, {XE, YE, AE}}, Game} ->
             %game:start
             gen_tcp:send(Sock, lists:concat(["pos:", XP, ":", YP , ":", AP,
-                                "\nposE:", XE, ":", YE, ":", AE, "\n"])),
-            gen_tcp:send(Sock, "game:s\n"),
+                                "\nposE:", XE, ":", YE, ":", AE, "\ngame:s\n"])),
             player(Sock, Game, Username);
         {abort, Game} ->
             %TODO ver isto com o Carlos
@@ -376,7 +374,7 @@ player(Sock, Game, Username) ->
         stop -> gen_tcp:close(Sock);
         {victory, Game} -> 
             lobby ! {win, Username, self()},
-            {ok, Level} = file_manager:check_level(Username),
+            {ok, Level} = file_manager:win(Username),
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
             user(Sock, Username);
         {defeat, Game} -> 
@@ -387,11 +385,12 @@ player(Sock, Game, Username) ->
             %io:format("player_from_after\n"),
             receive
                 stop -> gen_tcp:close(Sock);
-                {victory, Level, Game} -> 
+                {victory, Game} -> 
                     lobby ! {win, Username, self()},
+                    {ok, Level} = file_manager:win(Username),
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
                     user(Sock, Username);
-                {defeat, Level, Game} -> 
+                {defeat, Game} -> 
                     lobby ! {loss, Username, self()},
                     gen_tcp:send(Sock, "game:l\n"),
                     user(Sock, Username);

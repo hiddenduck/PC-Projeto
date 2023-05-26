@@ -124,7 +124,7 @@ handle_levels(Request, Map) ->
 				{ok, {Level, _}} ->
 					{{ok, Level}, Map}
 			end;
-		{win, Winner, Loser} ->
+		{win, Winner} ->
 			case maps:find(Winner, Map) of 
 				error ->
 					{{invalid_winner, 0, 0}, Map};
