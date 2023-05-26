@@ -510,6 +510,8 @@ public void draw(){
              this.topMinLimit = 0;
              this.connectionManager.send("top", "");
              String leaders = this.connectionManager.receive("top");
+             this.topNames = new ArrayList<>();
+             this.topLevels = new ArrayList<>();
              if(!Objects.equals(leaders, "")){
              String[] namesWin = leaders.split(":");
              this.topMaxLimit = Math.min(12, namesWin.length);
