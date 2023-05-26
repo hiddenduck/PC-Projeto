@@ -118,8 +118,8 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
         {forfeit, Player} ->
             space_server:end_game(
               case Player of
-                  P1Proc -> {P2Proc, P1Proc};
-                  P2Proc -> {P1Proc, P2Proc}
+                  P2Proc -> {P1Proc, P2Proc};
+                  P1Proc -> {P2Proc, P1Proc}
               end),
 
             kill_procs([Timer, Ticker]),
