@@ -174,13 +174,13 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
         {ok, FstPlayer} -> 
             receive
                 {ok, SndPlayer} -> 
-                    simulation:start_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
+                    simulation:start_game({FstUsername, FstPlayer, SndUsername, SndPlayer})
                 after 15000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         {ok, SndPlayer} -> 
             receive
                 {ok, FstPlayer} -> 
-                    simulation:start_game({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
+                    simulation:start_game({FstUsername, FstPlayer, SndUsername, SndPlayer})
                 after 15000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
