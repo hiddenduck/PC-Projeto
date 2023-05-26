@@ -291,9 +291,15 @@ public class Processing extends PApplet{
     } finally {
       this.gameState.lrw.writeLock().unlock();
     }
-    if(Objects.equals(gameCopy.gameStatus, "h") || Objects.equals(gameCopy.gameStatus, "s")) {
+    if(Objects.equals(gameCopy.gameStatus, "h")) {
       this.menuImage = loadImage("images/loading.jpg");
       this.menu = "loadingMenu";
+    } else if(Objects.equals(gameCopy.gameStatus, "s")){
+      this.menu = "game";
+      this.gameState.point = "0";
+      this.gameState.enemyPoint = "0";
+      this.gameState.boxes = new HashSet<>();
+      this.isInGame = true;
     }
   }
 
@@ -398,6 +404,7 @@ public class Processing extends PApplet{
       }
 
       if(this.moving.changed && !(this.moving.keys[0].equals(this.moving.keys[2]) && this.moving.keys[0].equals("t"))){
+        System.out.println("estou a enviar moves");
         this.connectionManager.send("move", this.moving.getMessage());
         this.moving.changed = false;
       }
