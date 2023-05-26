@@ -81,6 +81,6 @@ public class ConnectionManager implements AutoCloseable{
         this.socket.close();
         this.input.close();
         this.output.close();
-        //this.reader.join();
+        this.reader.join();
     }
 }
