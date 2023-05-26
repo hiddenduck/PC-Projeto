@@ -167,7 +167,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                             Powerups_ = Powerups;
                         {Powerup, HitList} ->
                             Powerups_ = Powerup ++ [Powerups], % this is the correct order to do this in because erlang copies the left list not the right https://www.erlang.org/doc/efficiency_guide/listhandling
-                            space_server:boxes([Powerup], HitList, P1Proc, P2Proc, self())
+                            space_server:boxes(Powerup, HitList, P1Proc, P2Proc, self())
                     end,
                     
                     case check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) of
