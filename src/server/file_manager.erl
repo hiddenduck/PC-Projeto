@@ -26,16 +26,16 @@ start() ->
 		{ok, <<>>} -> Levels = #{};
 		{ok, LevelsBin} -> Levels = erlang:binary_to_term(LevelsBin)
 	end,
-	register(file_manager, spawn(fun() -> loop(Passwords) end)), 
+	register(login_manager, spawn(fun() -> loop(Passwords) end)), 
 	register(level_manager, spawn(fun() -> loop_levels(Levels) end)),
 	{Passwords, Levels}.
-	%se o file_manager for um processo pode ser que não funcione se for ultrapassado
-	%register(file_manager, spawn(fun() -> file_manager() end)).
+	%se o login_manager for um processo pode ser que não funcione se for ultrapassado
+	%register(login_manager, spawn(fun() -> login_manager() end)).
 
 %Envia uma certa mensagem ao servidor esperando uma resposta do mesmo.
 invoke_file(Request) ->
-	file_manager ! {Request, self()},
-	receive {Res, file_manager} -> Res end.
+	login_manager ! {Request, self()},
+	receive {Res, login_manager} -> Res end.
 
 invoke_level(Request) ->
 	level_manager ! {Request, self()},
@@ -75,7 +75,7 @@ handle(Request, Map) ->
 		{create_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				error -> 
-					level_manager ! {set_level, Username, file_manager},
+					level_manager ! {set_level, Username, login_manager},
 					{ok, Map#{Username => Passwd}};
 				_ ->
 					{user_exists, Map}
@@ -83,7 +83,7 @@ handle(Request, Map) ->
 		{close_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
-					level_manager ! {close_account, Username, file_manager},
+					level_manager ! {close_account, Username, login_manager},
 					{ok, maps:remove(Username, Map)};
 				{ok, Data} ->
 					io:format("~p ~p\n", [Passwd, Data]),
@@ -109,7 +109,7 @@ loop(Map) ->
 	receive
 		{Request, From} ->
 			{Res, NextState} = handle(Request, Map),
-			From ! {Res, file_manager},
+			From ! {Res, login_manager},
 			loop(NextState);
 		stop ->
 			file:write_file("passwords", erlang:term_to_binary(Map))
@@ -144,12 +144,12 @@ handle_levels(Request, Map) ->
 %Função que corre recursivamente no levels_manager. Espera uma mensagem para manipulação de níveis/jogos e responde diretamente ao cliente. Chama-se recursivamente com possíevis novos estados.
 loop_levels(Map) ->
 	receive
-		{set_level, Username, file_manager} ->
+		{set_level, Username, login_manager} ->
 			case maps:find(Username, Map) of
 				_ ->
 					loop_levels(Map#{Username => {1,0}})
 			end;
-		{close_account, Username, file_manager} ->
+		{close_account, Username, login_manager} ->
 			case maps:find(Username, Map) of
 				error ->
 					loop_levels(Map);
@@ -167,6 +167,6 @@ loop_levels(Map) ->
 
 %Envia ao servidor e ao levels_manager uma mensagem para pararem a sua execução.
 stop() ->
-	file_manager ! stop,
+	login_manager ! stop,
 	level_manager ! stop,
 	ok.
