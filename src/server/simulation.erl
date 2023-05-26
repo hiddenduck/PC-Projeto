@@ -270,15 +270,15 @@ simulator(PlayerState, Flag) ->
                 decay ->
                     if 
                         Accel > ?BASE_ACCEL ->
-                            Accel_ = max(Accel - ?DECAY_RATE, ?BASE_ACCEL),
-                            io:format("decay Accel ~p", [Accel_]);
+                            %io:format("decay Accel ~p", [Accel_]),
+                            Accel_ = max(Accel - ?DECAY_RATE, ?BASE_ACCEL);
                         true ->
                             Accel_ = Accel
                     end,
                     if
                         AngVel > ?BASE_ANGVEL ->
-                            AngVel_ = max(AngVel - ?DECAY_RATE, ?BASE_ANGVEL),
-                            io:format("decay AngVel ~p", [AngVel_]);
+                            %io:format("decay AngVel ~p", [AngVel_]),
+                            AngVel_ = max(AngVel - ?DECAY_RATE, ?BASE_ANGVEL);
                         true ->
                             AngVel_ = AngVel
                     end,

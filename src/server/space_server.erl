@@ -55,18 +55,12 @@ lobby(Users, WinMap) ->
         {enter, Username, User} ->
             io:format("user entered ~p ~n", [Username]),
             lobby(Users#{Username => {unready, User}}, WinMap);
-        {unready, Username, User} ->
-            io:format("user unready ~p ~n", [Username]),
-            lobby(Users#{Username => {unready, User}}, WinMap);
-        {ready, Username, User} ->
-            io:format("user ready ~p ~n", [Username]),
-            lobby(Users#{Username => {ready, User}}, WinMap);
-        {game, Username, User} ->
-            io:format("user game ~p ~n", [Username]),
-            lobby(Users#{Username => {game, User}}, WinMap);
         {leave, Username, User} ->
             io:format("user left ~p ~n", [Username]),
             lobby(maps:remove(Username, Users), WinMap);
+        {Status, Username, User} ->
+            io:format("user ~p ~p ~n", [Status, Username]),
+            lobby(Users#{Username => {unready, User}}, WinMap);
         stop -> 
             lists:map(fun({_, Pid})-> Pid ! stop end, maps:values(Users)),
             io:format("lobby terminado\n")
@@ -80,7 +74,9 @@ game_manager(RoomMap, GameControllers) ->
     receive
         {unready, Level, User} -> 
             case maps:find(Level, RoomMap) of
-                {ok, {User, _}} ->
+                {ok, {User, Controller}} ->
+                    %Avisar o controlador para não esperar, uma maneira de terminar o ready
+                    Controller ! {abort, game_manager},
                     New_Map = maps:remove(Level, RoomMap);
                 _ ->
                     %Se alguém estiver ready e não for este não se faz nada?
@@ -94,10 +90,7 @@ game_manager(RoomMap, GameControllers) ->
                     User ! {error_already_ready, game_manager},
                     game_manager(RoomMap, GameControllers);
                 {ok, {_, Controller}} ->
-                    %TODO simplificar o game_manager para não perder tempo em burocracias
                     %juntar-se ao jogo
-                    %Não queremos que o game manager lide com burocracia lenta
-                    %Game = spawn(fun() -> sync_up({Other, Othername}, {User, Username}) end),
                     Controller ! {start, Username, User, game_manager},
                     User ! {ok, Controller, game_manager},
                     New_Map = maps:remove(Level, RoomMap),
@@ -115,19 +108,25 @@ game_manager(RoomMap, GameControllers) ->
     end.
 
 %Função de espera que correrá depois da chamada ready de um utilizador
-%Ainda não tenho a certeza da necessidade da sua existência, o game_manager pode se calhar dar spawn a um sync_up
 %Se calhar é mesmo preciso para receber os aborts a tempo
 %Um jogador dá ready. 
 %O segundo jogador dá ready e depois o primeiro cancela o jogo, enquanto o ecrã dele ainda não recebeu o ok
 %O primeiro tem de poder abortar o jogo, mas esse abort ainda não pode chegar ao sync_up se o game não existir
 ready([{FstUsername, FstPlayer}]) ->
     receive 
-        {abort, FstPlayer} -> todo;
+        %Este abort tem de vir de parte do game_manager aquando de um unready
+        {abort, game_manager} -> ok;
+        %Não pode receber o abort do primeiro jogador porque isso tem de ser testado no sync_up
         %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
         %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
         {start, SndUsername, SndPlayer, game_manager} ->
             sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
     end.
+
+abort_sync(FstPlayer, SndPlayer) ->
+    FstPlayer ! {abort, self()},
+    SndPlayer ! {abort, self()},
+    game_manager ! {end_game, self()}.
 
 %Função chamada depois da ligação de ambos os jogadores, para começar a Simulação e sintonizar ambos os jogadores
 %Se algum for cancelado dentro de um minuto o jogo não ocorre e pontos não são dados
@@ -142,17 +141,17 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
         {ok, FromFst, FstPlayer} -> 
             receive
                 {ok, FromSnd, SndPlayer} -> game({FstUsername, FromFst, FstPlayer}, {SndUsername, FromSnd, SndPlayer}, GameSim)
-                after 60000 -> end_game(FstPlayer, -1, SndPlayer, -1)
+                after 60000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         {ok, FromSnd, SndPlayer} -> 
             receive
                 {ok, FromFst, FstPlayer} -> game({FstUsername, FromFst, FstPlayer}, {SndUsername, FromSnd, SndPlayer}, GameSim)
-                after 60000 -> end_game(SndPlayer, -1, FstPlayer, -1)
+                after 60000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
-        {abort, FstPlayer} -> end_game(SndPlayer, -1, FstPlayer, -1);
-        {abort, SndPlayer} -> end_game(FstPlayer, -1, SndPlayer, -1)
-        after 60000 -> end_game(SndPlayer, -1, FstPlayer, -1)
+        {abort, FstPlayer} -> abort_sync(FstPlayer, SndPlayer);
+        {abort, SndPlayer} -> abort_sync(FstPlayer, SndPlayer)
+        after 60000 -> abort_sync(FstPlayer, SndPlayer)
     end.
 
 
@@ -180,55 +179,70 @@ boxes(Add, Remove, Controller, Game) ->
 score(FstPoints, SndPoints, Controller, Game) ->
     Controller ! {score, FstPoints, SndPoints, Game}.
 
+game_cleanup({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, Loser, GameSim) ->
+    case Loser of
+        p1 -> 
+            WinnerUsername = SndUsername, LoserUsername = FstUsername,
+            WinnerFrom = FromSnd, LoserFrom = FromFst;
+        ToFst -> 
+            WinnerUsername = SndUsername, LoserUsername = FstUsername,
+            WinnerFrom = FromSnd, LoserFrom = FromFst;
+        ToSnd ->
+            WinnerUsername = FstUsername, LoserUsername = SndUsername,
+            WinnerFrom = FromFst, LoserFrom = FromSnd;
+        p2 -> 
+            WinnerUsername = FstUsername, LoserUsername = SndUsername,
+            WinnerFrom = FromFst, LoserFrom = FromSnd
+    end,
+    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(WinnerUsername, LoserUsername),
+    end_game(WinnerFrom,WinnerLevel,LoserFrom,LoserLevel),
+    GameSim ! {stop, self()}.
+
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
-game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim) -> 
+game(FstTriple, SndTriple, GameSim) -> 
     receive
-        golden ->
-            FromFst ! {golden, self()},
-            FromSnd ! {golden, self()},
-            game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim);
-        stop ->
-            end_game(FromFst, -1, FromSnd, -1);
-        {positions, FstPositions, SndPositions, _} -> 
-            %io:format("Positions\n"),
-            positions(FstPositions, SndPositions, FromFst, self()),
-            positions(SndPositions, FstPositions, FromSnd, self()),
-            game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim);
-        {score, FstScore, SndScore, _} -> 
-            %io:format("Scores\n"),
-            score(FstScore, SndScore, FromFst, self()),
-            score(SndScore, FstScore, FromSnd, self()),
-            game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim);
-        {boxes, Add, Remove, _} ->
-            %io:format("Boxes\n"), 
-            boxes(Add, Remove, FromFst, self()),
-            boxes(Add, Remove, FromSnd, self()),
-            game({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, GameSim);
         %Recebe o jogador perdedor
         {abort, Player} ->
-            case Player of
-                p1 -> 
-                    WinnerUsername = SndUsername, LoserUsername = FstUsername,
-                    WinnerFrom = FromSnd, LoserFrom = FromFst;
-                ToFst -> 
-                    WinnerUsername = SndUsername, LoserUsername = FstUsername,
-                    WinnerFrom = FromSnd, LoserFrom = FromFst;
-                ToSnd ->
-                    WinnerUsername = FstUsername, LoserUsername = SndUsername,
-                    WinnerFrom = FromFst, LoserFrom = FromSnd;
-                p2 -> 
-                    WinnerUsername = FstUsername, LoserUsername = SndUsername,
-                    WinnerFrom = FromFst, LoserFrom = FromSnd
-            end,
-            {ok, WinnerLevel, LoserLevel} = file_manager:end_game(WinnerUsername, LoserUsername),
-            end_game(WinnerFrom,WinnerLevel,LoserFrom,LoserLevel),
-            GameSim ! {stop, self()}
-            %pontuar o outro jogador
-            %Só precisava de enviar o vencedor porque é o único que importa mas pode ser que possa estar inválido
-        %TODO Testar se o fim do jogo ocorreu mesmo, continuar até ao próximo ponto, terminar o jogo e marcar pontos
-        %TODO Provavelmente vai ser preciso que a simulação conheça o jogo que a está a correr, para comunicar este fim especial
-        %Talvez esta indireção (este game aqui) seja inútil e os aborts possam existir diretamente no game da simulação
+            game_cleanup(FstTriple, SndTriple, Player, GameSim)
+    after 0 ->
+        receive
+            {abort, Player} ->
+                game_cleanup(FstTriple, SndTriple, Player, GameSim);
+            golden ->
+                {_, FromFst, _} = FstTriple,
+                {_, FromSnd, _} = SndTriple,
+                FromFst ! {golden, self()},
+                FromSnd ! {golden, self()},
+                game(FstTriple, SndTriple, GameSim);
+            stop ->
+                %ver a melhor forma de fazer o stop
+                {_, _, ToFst} = FstTriple,
+                {_, _, ToSnd} = SndTriple,
+                abort_sync(ToFst, ToSnd);
+                %end_game(FromFst, -1, FromSnd, -1);
+            {positions, FstPositions, SndPositions, _} -> 
+                %io:format("Positions\n"),
+                {_, FromFst, _} = FstTriple,
+                {_, FromSnd, _} = SndTriple,
+                positions(FstPositions, SndPositions, FromFst, self()),
+                positions(SndPositions, FstPositions, FromSnd, self()),
+                game(FstTriple, SndTriple, GameSim);
+            {score, FstScore, SndScore, _} -> 
+                %io:format("Scores\n"),
+                {_, FromFst, _} = FstTriple,
+                {_, FromSnd, _} = SndTriple,
+                score(FstScore, SndScore, FromFst, self()),
+                score(SndScore, FstScore, FromSnd, self()),
+                game(FstTriple, SndTriple, GameSim);
+            {boxes, Add, Remove, _} ->
+                %io:format("Boxes\n"),
+                {_, FromFst, _} = FstTriple,
+                {_, FromSnd, _} = SndTriple,
+                boxes(Add, Remove, FromFst, self()),
+                boxes(Add, Remove, FromSnd, self()),
+                game(FstTriple, SndTriple, GameSim)
+        end
     end.
 
 %Termina o jogo avisando todos os intervenientes
@@ -337,7 +351,7 @@ user(Sock, Username) ->
         {tcp_error, _, _} ->
             lobby ! {leave, Username, self()};
         stop ->
-            gen_tcp:send(Sock, "server:closed\n")
+            gen_tcp:close(Sock)
     end.
 
 unready(Username, Game) ->
@@ -386,12 +400,13 @@ user_ready(Sock, Game, Username) ->
             unready(Username, Game),
             lobby ! {leave, Username, self()};
         stop ->
-            gen_tcp:send(Sock, "server:closed\n")
+            gen_tcp:close(Sock)
     end.
 
 player_fromsim(Sock, Game, ToSim) ->
     %io:format("player_from\n"),
     receive
+        stop -> ok;
         {victory, Level, Game} -> 
             ToSim ! {abort, self()},
             gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
@@ -401,12 +416,16 @@ player_fromsim(Sock, Game, ToSim) ->
         after 0 ->
             %io:format("player_from_after\n"),
             receive
+                stop -> gen_tcp:close(Sock), ToSim ! {stop, self()};
                 {victory, Level, Game} -> 
                     ToSim ! {abort, win, self()},
                     gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n");
                 {defeat, Level, Game} -> 
                     ToSim ! {abort, loss, self()},
                     gen_tcp:send(Sock, "game:l\n");
+                {abort, ToSim} ->
+                    %TODO ver isto com o Carlos
+                    gen_tcp:send(Sock, "game:a\n");
                 {golden, Game} -> 
                     gen_tcp:send(Sock, "game:g\n"),
                     player_fromsim(Sock, Game, ToSim);
@@ -439,6 +458,11 @@ player_fromsim(Sock, Game, ToSim) ->
 player_tosim(Sock, Game, Simulation, Username, FromSim) -> 
     %io:format("player_to\n"),
     receive
+        stop -> gen_tcp:close(Sock), FromSim ! stop;
+        {abort, Game} ->
+            FromSim ! {abort, self()},
+            lobby ! {unready, Username, self()},
+            user(Sock, Username);
         {abort, Res, FromSim} ->
             lobby ! {Res, Username, self()},
             user(Sock, Username);
