@@ -77,6 +77,41 @@ public class Processing extends PApplet{
     }
   }
 
+  private class Moving{
+    private String[] keys;
+
+    private boolean changed;
+
+    public Moving(){
+      this.keys = new String[3];
+      this.keys[0] = "f";
+      this.keys[1] = "f";
+      this.keys[2] = "f";
+      this.changed = false;
+    }
+
+    public void keyPressed(int index){
+      if(this.keys[index].equals("f")) {
+        this.keys[index] = "t";
+        this.changed = true;
+      }
+    }
+
+    public void keyReleased(int index){
+      if(this.keys[index].equals("t")) {
+        this.keys[index] = "f";
+        this.changed = true;
+      }
+    }
+
+    public String getMessage(){
+      if(this.keys[0].equals(this.keys[2]))
+        return "f:"+this.keys[1]+":f";
+      else
+        return this.keys[0]+":"+this.keys[1]+":"+this.keys[2];
+    }
+  }
+
   private textBox user, password;
   private PImage menuImage;
 
@@ -102,258 +137,267 @@ public class Processing extends PApplet{
 
   private int topMaxLimit;
 
-  private boolean[] keysPressed;
-public void setup(){
-  frameRate(30);
-  this.menuImage = loadImage("images/space.jpg");
-  this.menu = "startMenu";
-  this.isInGame = false;
-  this.message = "";
-  this.user = new textBox(0, height*0.3f, width, width*0.1f,"Username:");
-  this.password = new textBox(0, height*0.45f, width, width*0.1f,"Password:");
-  this.isReady = false;
-  this.gameState = new GameState();
-  this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
-
-  this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, "");
-  this.communicators[0].start();
-  this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, "E");
-  this.communicators[1].start();
-  this.communicators[2] = new CommunicatorBox(this.connectionManager, this.gameState);
-  this.communicators[2].start();
-  this.communicators[3] = new CommunicatorPoint(this.connectionManager, this.gameState);
-  this.communicators[3].start();
-  this.communicators[4] = new CommunicatorGame(this.connectionManager, this.gameState);
-  this.communicators[4].start();
-
-  this.keysPressed = new boolean[3];
-  this.colorMap = new HashMap<>();
-  this.colorMap.put('r', new Triple(255,0,0));
-  this.colorMap.put('g', new Triple(34,139,34));
-  this.colorMap.put('b', new Triple(0,191,255));
-
-  this.topNames = new ArrayList<>();
-  this.topLevels = new ArrayList<>();
-}
-
-private void startMenu(){
-  background(this.menuImage);
-  textAlign(CENTER, CENTER);
-  fill(206, 235, 251);
-  textSize(width*0.1f);
-  text("Welcome to SpaceWars",width/2.0f,height*0.05f);
-  strokeWeight(3);
-  textSize(width*0.05f);
-  text("Login",width*0.5f,height*0.25f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.3f, width*0.1f, height*0.1f);
-  fill(206, 235, 251);
-  textSize(width*0.05f);
-  text("Register",width*0.5f,height*0.45f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
-  fill(206, 235, 251);
-  textSize(width*0.05f);
-  text("Exit",width*0.5f,height*0.65f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
-  strokeWeight(0);
-}
-
-private void logRegMenu(){
-  background(this.menuImage);
-  textAlign(CENTER, CENTER);
-  fill(206, 235, 251);
-  textSize(width*0.1f);
-  text(this.registerMenu ? "Register Menu" : "Login Menu",width/2.0f,height*0.05f);
-  this.user.draw();
-  this.password.draw();
-  textAlign(CENTER, CENTER);
-  if(Objects.equals(this.message, "ok"))
-    fill(124,252,0);
-  else
-    fill(255,160,122);
-  text(message, width*0.5f, height*0.80f);
-  fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
-}
-
-private void loggedMenu(){
-  background(this.menuImage);
-  textAlign(CENTER, CENTER);
-  fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  fill(206, 235, 251);
-  textSize(width*0.05f);
-  text("Welcome " + this.user.getText(),width/2.0f,height*0.05f);
-  text("Level: " + this.level,width/2.0f,height*0.1f);
-  strokeWeight(3);
-  textSize(width*0.05f);
-  text("Play",width*0.5f,height*0.25f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.3f, width*0.1f, height*0.1f);
-  fill(206, 235, 251);
-  textSize(width*0.05f);
-  text("LeaderBoard",width*0.5f,height*0.45f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
-  fill(206, 235, 251);
-  textSize(width*0.05f);
-  text("Delete Account",width*0.5f,height*0.65f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
-  strokeWeight(0);
-}
-
-private void topMenu(){
-  background(this.menuImage);
-  fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  textSize(width*0.1f);
-  text("Page " + (this.topMaxLimit/8+1), width*0.5f, height*0.025f);
-  textSize(width*0.05f);
-  for(int i=this.topMinLimit; i<topMaxLimit; i++){
-    text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*0.2f+height*0.06f*i);
-  }
-
-  if(this.topMinLimit+11 <= this.topNames.size())
-    triangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f);
-  if(this.topMinLimit>=10)
-    triangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f);
-}
-
-private void waitingMenu(){
-  background(this.menuImage);
-  fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  strokeWeight(10);
-  fill(75,37,109);
-  rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
-  textSize(width*0.05f);
-  fill(188, 255, 18);
-  text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
-  text("Level: " + this.level,width*0.45f,height*0.2f);
-
-  textSize(width*0.08f);
-  if(isReady){
-    strokeWeight(8);
-    fill(50,205,50);
-    text("Ready", width*0.5f,  height*0.42f);
-    fill(0);
-    line(width*0.45f, height*0.5f, width*0.45f+width*0.1f, height*0.5f+height*0.1f);
-    line(width*0.45f+height*0.1f, height*0.5f, width*0.45f, height*0.5f+height*0.1f);
-  } else {
-    fill(220,20,60);
-    text("Not Ready", width*0.5f,  height*0.42f);
-  }
-  strokeWeight(0);
-  if(Objects.equals(this.gameState.gameStatus, "s")) {
-    this.menuImage = loadImage("images/space3.jpg");
-    this.menu = "game";
-    this.gameState.point = "0";
-    this.gameState.enemyPoint = "0";
-    this.gameState.boxes = new HashSet<>();
-    this.isInGame = true;
-  }
-}
-
-private void deleteMenu(){
-  background(this.menuImage);
-  textAlign(CENTER, CENTER);
-  fill(206, 235, 251);
-  textSize(width*0.1f);
-  text("Confirm Password",width/2.0f,height*0.05f);
-  this.password.draw();
-  fill(206, 235, 251);
-  triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  fill(112,128,144);
-  rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
-  textSize(width*0.05f);
-  fill(255,160,122);
-  text(message, width*0.3f, height*0.80f);
-}
-
-private void game() throws IOException{
-  GameState gameDraw;
-  this.gameState.lrw.writeLock().lock();
-  try {
-    gameDraw = this.gameState.copy();
-  } finally {
-    this.gameState.lrw.writeLock().unlock();
-  }
-
-  String[] statusArg = gameDraw.gameStatus.split(":", 2);
-  if(Objects.equals(statusArg[0], "w")) {
-    background(this.menuImage);
-    textSize(width*0.1f);
-    fill(255,255,0);
-    text("Victory", width * 0.5f, height * 0.5f);
+  private Moving moving;
+  public void setup(){
+    frameRate(30);
+    this.menuImage = loadImage("images/space.jpg");
+    this.menu = "startMenu";
     this.isInGame = false;
-    this.level = Integer.parseInt(statusArg[1]);
-    fill(206, 235, 251);
-    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  } else if(Objects.equals(statusArg[0], "l")){
+    this.message = "";
+    this.user = new textBox(0, height*0.3f, width, width*0.1f,"Username:");
+    this.password = new textBox(0, height*0.45f, width, width*0.1f,"Password:");
+    this.isReady = false;
+    this.gameState = new GameState();
+    this.communicators = new Communicator[5]; // Pos, enemyPos, box, point, game
+
+    this.communicators[0] = new CommunicatorPos(this.connectionManager, this.gameState, "");
+    this.communicators[0].start();
+    this.communicators[1] = new CommunicatorPos(this.connectionManager, this.gameState, "E");
+    this.communicators[1].start();
+    this.communicators[2] = new CommunicatorBox(this.connectionManager, this.gameState);
+    this.communicators[2].start();
+    this.communicators[3] = new CommunicatorPoint(this.connectionManager, this.gameState);
+    this.communicators[3].start();
+    this.communicators[4] = new CommunicatorGame(this.connectionManager, this.gameState);
+    this.communicators[4].start();
+
+    this.moving = new Moving();
+    this.colorMap = new HashMap<>();
+    this.colorMap.put('r', new Triple(255,0,0));
+    this.colorMap.put('g', new Triple(34,139,34));
+    this.colorMap.put('b', new Triple(0,191,255));
+
+    this.topNames = new ArrayList<>();
+    this.topLevels = new ArrayList<>();
+  }
+
+  private void startMenu(){
     background(this.menuImage);
+    textAlign(CENTER, CENTER);
+    fill(206, 235, 251);
     textSize(width*0.1f);
-    fill(255,0,0);
-    text("Defeat", width*0.5f, height*0.5f);
-    this.isInGame = false;
-    fill(206, 235, 251);
-    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
-  } else {
-    background(this.menuImage);
-    fill(119,136,153);
-    rect(width*0.0625f,height*0.1f, 700, 700);
+    text("Welcome to SpaceWars",width/2.0f,height*0.05f);
+    strokeWeight(3);
     textSize(width*0.05f);
-    if(Objects.equals(gameDraw.gameStatus, "g"))
-      fill(255, 255, 0);
-    else
-        fill(255);
-    text(gameDraw.point + ":" + gameDraw.enemyPoint, width*0.5f, height*0.05f);
-
-    fill(255, 16, 240);
-    ellipse(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 30, 30);
-    fill(251, 255, 22);
-    ellipse(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 30, 30);
-
-    strokeWeight(6);
-    fill(0);
-    pushMatrix();
-    translate(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY);
-    rotate(gameDraw.alfa);
-    line(0,0, 13.5f, 0);
-    popMatrix();
-    pushMatrix();
-    translate(width*0.0625f + gameDraw.enemyPosX, height*0.1f + gameDraw.enemyPosY);
-    rotate(gameDraw.enemyAlfa);
-    line(0,0, 13.5f, 0);
-    popMatrix();
+    text("Login",width*0.5f,height*0.25f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.3f, width*0.1f, height*0.1f);
+    fill(206, 235, 251);
+    textSize(width*0.05f);
+    text("Register",width*0.5f,height*0.45f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
+    fill(206, 235, 251);
+    textSize(width*0.05f);
+    text("Exit",width*0.5f,height*0.65f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
     strokeWeight(0);
+  }
 
-    Triple triple;
-    for (Triple box : gameDraw.boxes) {
-      triple = this.colorMap.get(box.chars[0]);
-      fill(triple.floats[0], triple.floats[1], triple.floats[2]);
-      rect(width*0.0625f + box.floats[0] - 15, height*0.1f + box.floats[1] - 15, 30, 30);
+  private void logRegMenu(){
+    background(this.menuImage);
+    textAlign(CENTER, CENTER);
+    fill(206, 235, 251);
+    textSize(width*0.1f);
+    text(this.registerMenu ? "Register Menu" : "Login Menu",width/2.0f,height*0.05f);
+    this.user.draw();
+    this.password.draw();
+    textAlign(CENTER, CENTER);
+    if(Objects.equals(this.message, "ok"))
+      fill(124,252,0);
+    else
+      fill(255,160,122);
+    text(message, width*0.5f, height*0.80f);
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
+  }
+
+  private void loggedMenu(){
+    background(this.menuImage);
+    textAlign(CENTER, CENTER);
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    fill(206, 235, 251);
+    textSize(width*0.05f);
+    text("Welcome " + this.user.getText(),width/2.0f,height*0.05f);
+    text("Level: " + this.level,width/2.0f,height*0.1f);
+    strokeWeight(3);
+    textSize(width*0.05f);
+    text("Play",width*0.5f,height*0.25f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.3f, width*0.1f, height*0.1f);
+    fill(206, 235, 251);
+    textSize(width*0.05f);
+    text("LeaderBoard",width*0.5f,height*0.45f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
+    fill(206, 235, 251);
+    textSize(width*0.05f);
+    text("Delete Account",width*0.5f,height*0.65f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.7f, width*0.1f, height*0.1f);
+    strokeWeight(0);
+  }
+
+  private void topMenu(){
+    background(this.menuImage);
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    textSize(width*0.1f);
+    text("Page " + (this.topMaxLimit/8+1), width*0.5f, height*0.025f);
+    textSize(width*0.05f);
+    for(int i=this.topMinLimit; i<topMaxLimit; i++){
+      text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*0.2f+height*0.06f*i);
     }
 
-    if ((this.keysPressed[0] && !this.keysPressed[2]) || (!this.keysPressed[0] && this.keysPressed[2]) || this.keysPressed[1]) {
-      this.connectionManager.send("move", Character.toString(Boolean.toString(this.keysPressed[0]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[1]).charAt(0))+":"+Character.toString(Boolean.toString(this.keysPressed[2]).charAt(0)));
+    if(this.topMinLimit+11 <= this.topNames.size())
+      triangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f);
+    if(this.topMinLimit>=10)
+      triangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f);
+  }
+
+  private void waitingMenu(){
+    background(this.menuImage);
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    strokeWeight(10);
+    fill(75,37,109);
+    rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
+    textSize(width*0.05f);
+    fill(188, 255, 18);
+    text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
+    text("Level: " + this.level,width*0.45f,height*0.2f);
+
+    textSize(width*0.08f);
+    if(isReady){
+      strokeWeight(8);
+      fill(50,205,50);
+      text("Ready", width*0.5f,  height*0.42f);
+      fill(0);
+      line(width*0.45f, height*0.5f, width*0.45f+width*0.1f, height*0.5f+height*0.1f);
+      line(width*0.45f+height*0.1f, height*0.5f, width*0.45f, height*0.5f+height*0.1f);
+    } else {
+      fill(220,20,60);
+      text("Not Ready", width*0.5f,  height*0.42f);
+    }
+    strokeWeight(0);
+    if(Objects.equals(this.gameState.gameStatus, "h")) {
+      this.menuImage = loadImage("images/loading.jpg");
+      this.menu = "loadingMenu";
+    }
+  }
+
+  private void loadingMenu(){
+    background(this.menuImage);
+    text("Loading", width*0.5f, height*0.5f);
+    if(Objects.equals(this.gameState.gameStatus, "s")) {
+      this.menuImage = loadImage("images/space3.jpg");
+      this.menu = "game";
+      this.gameState.point = "0";
+      this.gameState.enemyPoint = "0";
+      this.gameState.boxes = new HashSet<>();
+      this.isInGame = true;
+    }
+  }
+
+  private void deleteMenu(){
+    background(this.menuImage);
+    textAlign(CENTER, CENTER);
+    fill(206, 235, 251);
+    textSize(width*0.1f);
+    text("Confirm Password",width/2.0f,height*0.05f);
+    this.password.draw();
+    fill(206, 235, 251);
+    triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    fill(112,128,144);
+    rect(width*0.45f, height*0.65f, width*0.1f, height*0.1f);
+    textSize(width*0.05f);
+    fill(255,160,122);
+    text(message, width*0.3f, height*0.80f);
+  }
+
+  private void game() throws IOException{
+    GameState gameDraw;
+    this.gameState.lrw.writeLock().lock();
+    try {
+      gameDraw = this.gameState.copy();
+    } finally {
+      this.gameState.lrw.writeLock().unlock();
     }
 
-  }
-}
+    String[] statusArg = gameDraw.gameStatus.split(":", 2);
+    if(Objects.equals(statusArg[0], "w")) {
+      background(this.menuImage);
+      textSize(width*0.1f);
+      fill(255,255,0);
+      text("Victory", width * 0.5f, height * 0.5f);
+      this.isInGame = false;
+      this.level = Integer.parseInt(statusArg[1]);
+      fill(206, 235, 251);
+      triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    } else if(Objects.equals(statusArg[0], "l")){
+      background(this.menuImage);
+      textSize(width*0.1f);
+      fill(255,0,0);
+      text("Defeat", width*0.5f, height*0.5f);
+      this.isInGame = false;
+      fill(206, 235, 251);
+      triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
+    } else {
+      background(this.menuImage);
+      fill(119,136,153);
+      rect(width*0.0625f,height*0.1f, 700, 700);
+      textSize(width*0.05f);
+      if(Objects.equals(gameDraw.gameStatus, "g"))
+        fill(255, 255, 0);
+      else
+        fill(255);
+      text(gameDraw.point + ":" + gameDraw.enemyPoint, width*0.5f, height*0.05f);
 
-public void draw(){
-  try {
-    this.getClass().getDeclaredMethod(this.menu).invoke(this);
-  } catch (Exception e){
-    e.printStackTrace();
-    exit();
+      fill(255, 16, 240);
+      circle(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY, 30);
+      fill(251, 255, 22);
+      circle(width*0.0625f + gameDraw.enemyPosX, height*0.1f+ gameDraw.enemyPosY, 30);
+
+      strokeWeight(6);
+      fill(0);
+      pushMatrix();
+      translate(width*0.0625f + gameDraw.posX, height*0.1f + gameDraw.posY);
+      rotate(gameDraw.alfa);
+      line(0,0, 13.5f, 0);
+      popMatrix();
+      pushMatrix();
+      translate(width*0.0625f + gameDraw.enemyPosX, height*0.1f + gameDraw.enemyPosY);
+      rotate(gameDraw.enemyAlfa);
+      line(0,0, 13.5f, 0);
+      popMatrix();
+      strokeWeight(0);
+
+      Triple triple;
+      for (Triple box : gameDraw.boxes) {
+        triple = this.colorMap.get(box.chars[0]);
+        fill(triple.floats[0], triple.floats[1], triple.floats[2]);
+        circle(width*0.0625f + box.floats[0], height*0.1f + box.floats[1], 30);
+      }
+
+      if(this.moving.changed && !(this.moving.keys[0].equals(this.moving.keys[2]) && this.moving.keys[0].equals("t"))){
+        this.connectionManager.send("move", this.moving.getMessage());
+        this.moving.changed = false;
+      }
+    }
   }
-}
+
+  public void draw(){
+    try {
+      this.getClass().getDeclaredMethod(this.menu).invoke(this);
+    } catch (Exception e){
+      e.printStackTrace();
+      exit();
+    }
+  }
 
   public void settings() {
     size(800, 800);
@@ -376,14 +420,14 @@ public void draw(){
 
   public void mousePressed(){
     if(!this.isInGame){
-       if(Objects.equals(this.menu, "game")){
-         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
-           this.menuImage = loadImage("images/space2.jpg");
-           this.isReady = false;
-           this.menu = "waitingMenu";
-         }
-       }
-       else if(Objects.equals(this.menu, "startMenu")){
+      if(Objects.equals(this.menu, "game")){
+        if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
+          this.menuImage = loadImage("images/space2.jpg");
+          this.isReady = false;
+          this.menu = "waitingMenu";
+        }
+      }
+      else if(Objects.equals(this.menu, "startMenu")){
         if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
           this.menu = "logRegMenu";
           this.registerMenu = false;
@@ -467,7 +511,7 @@ public void draw(){
             this.menu = "loggedMenu";
           }
         }
-         else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+        else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
           try{
             this.connectionManager.send("ready", Boolean.toString(!this.isReady));
           } catch (IOException e){
@@ -482,96 +526,96 @@ public void draw(){
             this.isReady = !this.isReady;
         }
       } else if(Objects.equals(this.menu, "loggedMenu")){
-         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
-           try {
-             this.connectionManager.send("logout", "");
-           } catch (IOException e){
-             e.printStackTrace();
-           }
+        if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)) {
+          try {
+            this.connectionManager.send("logout", "");
+          } catch (IOException e){
+            e.printStackTrace();
+          }
 
-           try{
-             this.message = this.connectionManager.receive("logout");
-           } catch (IOException|InterruptedException e){
-             e.printStackTrace();
-           }
+          try{
+            this.message = this.connectionManager.receive("logout");
+          } catch (IOException|InterruptedException e){
+            e.printStackTrace();
+          }
 
-           if(Objects.equals(this.message, "ok")) {
-             this.message = "";
-             this.user.reset();
-             this.password.reset();
-             this.menuImage = loadImage("images/space.jpg");
-             this.menu = "startMenu";
-           }
-         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
-           this.isReady = false;
-           this.menu = "waitingMenu";
-         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
-           try {
-             this.topMinLimit = 0;
-             this.connectionManager.send("top", "");
-             String leaders = this.connectionManager.receive("top");
-             this.topNames = new ArrayList<>();
-             this.topLevels = new ArrayList<>();
-             if(!Objects.equals(leaders, "")){
-             String[] namesWin = leaders.split(":");
-             this.topMaxLimit = Math.min(12, namesWin.length);
-             for(String nameWin: namesWin) {
-               String[] stats = nameWin.split("_");
-               this.topNames.add(stats[0]);
-               this.topLevels.add(stats[1]);
+          if(Objects.equals(this.message, "ok")) {
+            this.message = "";
+            this.user.reset();
+            this.password.reset();
+            this.menuImage = loadImage("images/space.jpg");
+            this.menu = "startMenu";
+          }
+        } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.3f && mouseY < height*0.3f + height*0.1f){
+          this.isReady = false;
+          this.menu = "waitingMenu";
+        } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.5f && mouseY < height*0.5f + height*0.1f){
+          try {
+            this.topMinLimit = 0;
+            this.connectionManager.send("top", "");
+            String leaders = this.connectionManager.receive("top");
+            this.topNames = new ArrayList<>();
+            this.topLevels = new ArrayList<>();
+            if(!Objects.equals(leaders, "")){
+              String[] namesWin = leaders.split(":");
+              this.topMaxLimit = Math.min(12, namesWin.length);
+              for(String nameWin: namesWin) {
+                String[] stats = nameWin.split("_");
+                this.topNames.add(stats[0]);
+                this.topLevels.add(stats[1]);
               }
-             }
-           } catch (IOException|InterruptedException e){
-             e.printStackTrace();
-           }
-           this.menu = "topMenu";
-         } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
-           this.password.reset();
-           this.message = "";
-           this.menu = "deleteMenu";
-         }
-       } else if(Objects.equals(this.menu, "topMenu")){
-         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
-           this.menu = "loggedMenu";
-         } else if(this.topMinLimit+13 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
-            this.topMinLimit += 12;
-            this.topMaxLimit = Math.min(12, this.topNames.size()-12);
-         } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
-            this.topMinLimit -= 12;
-         }
-       } else if(Objects.equals(this.menu, "deleteMenu")){
-         this.password.select(mouseX,mouseY);
-         if(isInsideBox(width*0.45f, height*0.65f, width*0.1f, height*0.1f)){
-           try{
-             this.connectionManager.send("close",password.getText());
-           } catch (IOException e){
-             e.printStackTrace();
-           }
-           try{
-             this.message = this.connectionManager.receive("close");
-           } catch (IOException|InterruptedException e){
-             e.printStackTrace();
-           }
-           if(Objects.equals(this.message, "ok")){
-             this.message = "";
-             this.user.reset();
-             this.password.reset();
-             this.menuImage = loadImage("images/space.jpg");
-             this.menu = "startMenu";
-           }
-         } else if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
-           this.menu = "loggedMenu";
-         }
-       }
+            }
+          } catch (IOException|InterruptedException e){
+            e.printStackTrace();
+          }
+          this.menu = "topMenu";
+        } else if(mouseX > width*0.45f && mouseX < width*0.45f + width*0.1f && mouseY > height*0.7f && mouseY < height*0.7f + height*0.1f){
+          this.password.reset();
+          this.message = "";
+          this.menu = "deleteMenu";
+        }
+      } else if(Objects.equals(this.menu, "topMenu")){
+        if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
+          this.menu = "loggedMenu";
+        } else if(this.topMinLimit+13 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
+          this.topMinLimit += 12;
+          this.topMaxLimit = Math.min(12, this.topNames.size()-12);
+        } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
+          this.topMinLimit -= 12;
+        }
+      } else if(Objects.equals(this.menu, "deleteMenu")){
+        this.password.select(mouseX,mouseY);
+        if(isInsideBox(width*0.45f, height*0.65f, width*0.1f, height*0.1f)){
+          try{
+            this.connectionManager.send("close",password.getText());
+          } catch (IOException e){
+            e.printStackTrace();
+          }
+          try{
+            this.message = this.connectionManager.receive("close");
+          } catch (IOException|InterruptedException e){
+            e.printStackTrace();
+          }
+          if(Objects.equals(this.message, "ok")){
+            this.message = "";
+            this.user.reset();
+            this.password.reset();
+            this.menuImage = loadImage("images/space.jpg");
+            this.menu = "startMenu";
+          }
+        } else if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
+          this.menu = "loggedMenu";
+        }
+      }
     }
   }
 
   public void keyPressed(){
     if(isInGame) {
       switch (key) {
-        case ('a') -> this.keysPressed[0] = true;
-        case ('w') -> this.keysPressed[1] = true;
-        case ('d') -> this.keysPressed[2] = true;
+        case ('a') -> this.moving.keyPressed(0);
+        case ('w') -> this.moving.keyPressed(1);
+        case ('d') -> this.moving.keyPressed(2);
       }
     }else{
       if(this.user.active){
@@ -584,15 +628,15 @@ public void draw(){
 
   public void keyReleased(){
     switch (this.key) {
-      case ('a') -> this.keysPressed[0] = false;
-      case ('w') -> this.keysPressed[1] = false;
-      case ('d') -> this.keysPressed[2] = false;
+      case ('a') -> this.moving.keyReleased(0);
+      case ('w') -> this.moving.keyReleased(1);
+      case ('d') -> this.moving.keyReleased(2);
     }
   }
 
   public static void main(String[] args) {
-  if(args.length < 2)
-        System.exit(1);
+    if(args.length < 2)
+      System.exit(1);
 
     String host = args[0];
     int port = Integer.parseInt(args[1]);
