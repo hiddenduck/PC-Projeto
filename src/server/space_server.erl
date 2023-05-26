@@ -169,7 +169,6 @@ positions(FstPositions, SndPositions, Controller, Game) ->
 %Recebe as posições a adicionar e remover das caixas em listas de tuplos
 %[{x1,y1,color1},{x2,y2,color2}]
 boxes(Add, Remove, Controller, Game) ->
-
     Controller ! {boxes, Add, Remove, Game}.
 
 %Recebe a pontuação de ambos os jogadores
@@ -177,17 +176,11 @@ score(FstPoints, SndPoints, Controller, Game) ->
     Controller ! {score, FstPoints, SndPoints, Game}.
 
 game_cleanup({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, Loser, GameSim) ->
-    case Loser of
-        p1 -> 
+    if 
+        Loser == p1; Loser == ToFst ->
             WinnerUsername = SndUsername, LoserUsername = FstUsername,
             WinnerFrom = FromSnd, LoserFrom = FromFst;
-        ToFst -> 
-            WinnerUsername = SndUsername, LoserUsername = FstUsername,
-            WinnerFrom = FromSnd, LoserFrom = FromFst;
-        ToSnd ->
-            WinnerUsername = FstUsername, LoserUsername = SndUsername,
-            WinnerFrom = FromFst, LoserFrom = FromSnd;
-        p2 -> 
+        Loser == p2; Loser == ToSnd ->
             WinnerUsername = FstUsername, LoserUsername = SndUsername,
             WinnerFrom = FromFst, LoserFrom = FromSnd
     end,
@@ -195,49 +188,52 @@ game_cleanup({FstUsername, FromFst, ToFst}, {SndUsername, FromSnd, ToSnd}, Loser
     end_game(WinnerFrom,WinnerLevel,LoserFrom,LoserLevel),
     GameSim ! {stop, self()}.
 
+handle(Type, FstArg, SndArg, FstTriple, SndTriple) ->
+    {_, FromFst, _} = FstTriple,
+    {_, FromSnd, _} = SndTriple,
+    case Type of
+        positions -> 
+            positions(FstArg, SndArg, FromFst, self()),
+            positions(SndArg, FstArg, FromSnd, self());
+        score -> 
+            score(FstArg, SndArg, FromFst, self()),
+            score(SndArg, FstArg, FromSnd, self());
+        boxes ->
+            boxes(FstArg, SndArg, FromFst, self()),
+            boxes(FstArg, SndArg, FromSnd, self())
+    end.
+
 %Espera do jogo que recebe o final do tempo e também o cancelar dos jogadores.
 %Dita os vencedores, chamando a função para marcar pontos, o que pode fazer com que os restantes esperem por correr depois
 game(FstTriple, SndTriple, GameSim) -> 
     receive
         %Recebe o jogador perdedor
         {abort, Player} ->
-            game_cleanup(FstTriple, SndTriple, Player, GameSim)
+            game_cleanup(FstTriple, SndTriple, Player, GameSim);
+        stop ->
+            %ver a melhor forma de fazer o stop
+            {_, _, ToFst} = FstTriple,
+            {_, _, ToSnd} = SndTriple,
+            abort_sync(ToFst, ToSnd)
+            %end_game(FromFst, -1, FromSnd, -1);
     after 0 ->
         receive
             {abort, Player} ->
                 game_cleanup(FstTriple, SndTriple, Player, GameSim);
-            golden ->
-                {_, FromFst, _} = FstTriple,
-                {_, FromSnd, _} = SndTriple,
-                FromFst ! {golden, self()},
-                FromSnd ! {golden, self()},
-                game(FstTriple, SndTriple, GameSim);
             stop ->
                 %ver a melhor forma de fazer o stop
                 {_, _, ToFst} = FstTriple,
                 {_, _, ToSnd} = SndTriple,
                 abort_sync(ToFst, ToSnd);
                 %end_game(FromFst, -1, FromSnd, -1);
-            {positions, FstPositions, SndPositions, _} -> 
-                %io:format("Positions\n"),
+            golden ->
                 {_, FromFst, _} = FstTriple,
                 {_, FromSnd, _} = SndTriple,
-                positions(FstPositions, SndPositions, FromFst, self()),
-                positions(SndPositions, FstPositions, FromSnd, self()),
+                FromFst ! {golden, self()},
+                FromSnd ! {golden, self()},
                 game(FstTriple, SndTriple, GameSim);
-            {score, FstScore, SndScore, _} -> 
-                %io:format("Scores\n"),
-                {_, FromFst, _} = FstTriple,
-                {_, FromSnd, _} = SndTriple,
-                score(FstScore, SndScore, FromFst, self()),
-                score(SndScore, FstScore, FromSnd, self()),
-                game(FstTriple, SndTriple, GameSim);
-            {boxes, Add, Remove, _} ->
-                %io:format("Boxes\n"),
-                {_, FromFst, _} = FstTriple,
-                {_, FromSnd, _} = SndTriple,
-                boxes(Add, Remove, FromFst, self()),
-                boxes(Add, Remove, FromSnd, self()),
+            {Type, FstArg, SndArg, _} ->
+                handle(Type, FstArg, SndArg, FstTriple, SndTriple),
                 game(FstTriple, SndTriple, GameSim)
         end
     end.
