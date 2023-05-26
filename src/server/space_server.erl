@@ -108,16 +108,13 @@ game_manager(RoomMap, GameControllers) ->
     end.
 
 %Função de espera que correrá depois da chamada ready de um utilizador
-%Se calhar é mesmo preciso para receber os aborts a tempo
 %Um jogador dá ready. 
 %O segundo jogador dá ready e depois o primeiro cancela o jogo, enquanto o ecrã dele ainda não recebeu o ok
-%O primeiro tem de poder abortar o jogo, mas esse abort ainda não pode chegar ao sync_up se o game não existir
 ready([{FstUsername, FstPlayer}]) ->
     receive 
         %Este abort tem de vir de parte do game_manager aquando de um unready
         {abort, game_manager} -> ok;
         %Não pode receber o abort do primeiro jogador porque isso tem de ser testado no sync_up
-        %Antes de começar o jogo é preciso verificar se ainda estão vivos os jogadores
         %Problemas de concorrência podem fazer com que o jogo comece mas um dos jogadores se desconecte antes de o saber
         {start, SndUsername, SndPlayer, game_manager} ->
             sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer})
@@ -141,17 +138,17 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
         {ok, FromFst, FstPlayer} -> 
             receive
                 {ok, FromSnd, SndPlayer} -> game({FstUsername, FromFst, FstPlayer}, {SndUsername, FromSnd, SndPlayer}, GameSim)
-                after 60000 -> abort_sync(FstPlayer, SndPlayer)
+                after 15000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         {ok, FromSnd, SndPlayer} -> 
             receive
                 {ok, FromFst, FstPlayer} -> game({FstUsername, FromFst, FstPlayer}, {SndUsername, FromSnd, SndPlayer}, GameSim)
-                after 60000 -> abort_sync(FstPlayer, SndPlayer)
+                after 15000 -> abort_sync(FstPlayer, SndPlayer)
             end;
         %1 minuto de espera para conexão parece justo, se não der é preciso avisar do fim do jogo
         {abort, FstPlayer} -> abort_sync(FstPlayer, SndPlayer);
         {abort, SndPlayer} -> abort_sync(FstPlayer, SndPlayer)
-        after 60000 -> abort_sync(FstPlayer, SndPlayer)
+        after 15000 -> abort_sync(FstPlayer, SndPlayer)
     end.
 
 
