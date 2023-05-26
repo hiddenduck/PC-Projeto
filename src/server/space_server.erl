@@ -8,6 +8,40 @@ start(Port) -> register(?MODULE, spawn(fun() -> server(Port) end)), ok.
 
 stop() -> ?MODULE ! stop.
 
+%Avisa os jogadores do Golden Point
+golden_point(FstPlayer, SndPlayer) ->
+    FstPlayer ! golden,
+    SndPlayer ! golden.
+
+%Recebe as posições da simulação em dois tuplos
+%{xp,yp,ap}, {xe,ye,ap}
+positions(FstPositions, SndPositions, FstPlayer, SndPlayer, Game) ->
+    FstPlayer ! {positions, FstPositions, SndPositions, Game},
+    SndPlayer ! {positions, SndPositions, FstPositions , Game}.
+
+%Recebe as posições a adicionar e remover das caixas em listas de tuplos
+%[{x1,y1,color1},{x2,y2,color2}]
+boxes(Add, Remove, FstPlayer, SndPlayer, Game) ->
+    FstPlayer ! {boxes, Add, Remove, Game},
+    SndPlayer ! {boxes, Add, Remove, Game}.
+
+%Recebe a pontuação de ambos os jogadores
+score(FstPoints, SndPoints, FstPlayer, SndPlayer, Game) ->
+    FstPlayer ! {score, FstPoints, SndPoints, Game},
+    SndPlayer ! {score, SndPoints, FstPoints, Game}.
+
+%Termina o jogo, dado um vencedor, avisando todos os intervenientes
+end_game({Winner, WinnerUsername}, {Loser, LoserUsername}) ->
+    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(WinnerUsername, LoserUsername),
+    Winner ! {victory, WinnerLevel, self()},
+    Loser ! {defeat, LoserLevel, self()},
+    game_manager ! {end_game, self()}.
+
+%Responsabilidade do simulation
+%Começa o jogo para um dado jogador e uma posição inicial
+start_game(Player, Pos) ->
+    Player ! {start_game, Pos, self()}.
+
 %Início do registo do server, começa com um ListeningSocket para ir gerando um para cada jogador
 %Regista dois processos, um como o lobby e outro como o game_manager, depois torna-se no acceptor
 server(Port) ->
@@ -130,10 +164,6 @@ sync(FstPlayer, SndPlayer) ->
     FstPlayer ! {sync, self()},
     SndPlayer ! {sync, self()}.
 
-%Responsabilidade do simulation
-start_game(Player, Pos) ->
-    Player ! {start_game, Pos, self()}.
-
 %Função chamada depois da ligação de ambos os jogadores, para começar a Simulação e sintonizar ambos os jogadores
 %Se algum for cancelado dentro de um minuto o jogo não ocorre e pontos não são dados
 %As simulações são passadas para cada um dos jogadores
@@ -159,39 +189,9 @@ sync_up({FstUsername, FstPlayer}, {SndUsername, SndPlayer}) ->
         after 15000 -> abort_sync(FstPlayer, SndPlayer)
     end.
 
-%O Controller é a quem é enviada a mensagem (Controlador do jogo do lado do servidor)
-
-golden_point(FstPlayer, SndPlayer) ->
-    FstPlayer ! golden,
-    SndPlayer ! golden.
-
-%Recebe as posições da simulação em dois tuplos
-%{xp,yp,ap}, {xe,ye,ap}
-positions(FstPositions, SndPositions, FstPlayer, SndPlayer, Game) ->
-    FstPlayer ! {positions, FstPositions, SndPositions, Game},
-    SndPlayer ! {positions, SndPositions, FstPositions , Game}.
-
-%Recebe as posições a adicionar e remover das caixas em listas de tuplos
-%[{x1,y1,color1},{x2,y2,color2}]
-boxes(Add, Remove, FstPlayer, SndPlayer, Game) ->
-    FstPlayer ! {boxes, Add, Remove, Game},
-    SndPlayer ! {boxes, Add, Remove, Game}.
-
-%Recebe a pontuação de ambos os jogadores
-score(FstPoints, SndPoints, FstPlayer, SndPlayer, Game) ->
-    FstPlayer ! {score, FstPoints, SndPoints, Game},
-    SndPlayer ! {score, SndPoints, FstPoints, Game}.
-
-%Termina o jogo avisando todos os intervenientes
-end_game({Winner, WinnerUsername}, {Loser, LoserUsername}) ->
-    {ok, WinnerLevel, LoserLevel} = file_manager:end_game(WinnerUsername, LoserUsername),
-    Winner ! {victory, WinnerLevel, self()},
-    Loser ! {defeat, LoserLevel, self()},
-    game_manager ! {end_game, self()}.
-
 % As funções seguintes dizem respeito às funções que ditam o estado dos jogadores
 % A função acceptor abre a Socket de ligação com o utilizador
-% Os diferentes estados são: Main_Menu; User; Ready_User; e Player
+% Os diferentes estados são: Main_Menu; User; Ready_User; Loading; e Player
 
 %TODO como fechar esta LSock no accept?
 acceptor(LSock) ->
@@ -306,7 +306,8 @@ user_ready(Sock, Game, Username) ->
         {sync, Game} -> 
             lobby ! {game, Username, self()},
             %TODO arranjar uma cena melhor
-            gen_tcp:send(Sock, "game:loading\n"),
+            %Hol' Up
+            gen_tcp:send(Sock, "game:h\n"),
             loading(Sock, Game, Username);
         {tcp, _, Data} ->
             case Data of
