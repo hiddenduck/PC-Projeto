@@ -75,7 +75,7 @@ handle(Request, Map) ->
 		{create_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				error -> 
-					level_manager ! {set_level, Username, self()},
+					level_manager ! {set_level, Username, file_manager},
 					{ok, Map#{Username => Passwd}};
 				_ ->
 					{user_exists, Map}
@@ -83,7 +83,7 @@ handle(Request, Map) ->
 		{close_account, Username, Passwd} -> 
 			case maps:find(Username, Map) of
 				{ok, Passwd} -> 
-					level_manager ! {close_account, Username, self()},
+					level_manager ! {close_account, Username, file_manager},
 					{ok, maps:remove(Username, Map)};
 				{ok, Data} ->
 					io:format("~p ~p\n", [Passwd, Data]),
@@ -99,7 +99,7 @@ handle(Request, Map) ->
 				{ok, _ } ->
 					{invalid_password, Map};
 				_ ->
-					{invalid, Map}
+					{invalid_user, Map}
 			end;
 		_ -> ok
 	end.
@@ -117,14 +117,14 @@ loop(Map) ->
 
 handle_levels(Request, Map) ->
 	case Request of
-		{close_account, Username} ->
+		{close_account, Username, file_manager} ->
 			case maps:find(Username, Map) of
 				error ->
 					{user_not_exist, Map};
 				{ok, _} ->
 					{ok, maps:remove(Username, Map)}
 			end;
-		{set_level, Username} ->
+		{set_level, Username, file_manager} ->
 			case maps:find(Username, Map) of
 				error ->
 					{ok, maps:put(Username, {1, 0}, Map)};
