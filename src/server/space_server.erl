@@ -28,6 +28,7 @@ online() ->
 
 %Lobby como sala tirada diretamente das salas definidas nas aulas prática
 %A chave é o Username porque é necessário para testar quando um utilizador entra
+%TODO Não se pode fazer pelos values? o online já está a ser dumb e já
 lobby(Users, WinMap) ->
     %io:format("~p\n", [WinMap]),
     receive
@@ -248,6 +249,7 @@ end_game(Winner,WinnerLevel, Loser, LoserLevel) ->
 % A função acceptor abre a Socket de ligação com o utilizador
 % Os diferentes estados são: Main_Menu; User; Ready_User; e Player
 
+%TODO como fechar esta LSock no accept?
 acceptor(LSock) ->
     case gen_tcp:accept(LSock) of
         {ok, Sock}  ->
@@ -256,6 +258,8 @@ acceptor(LSock) ->
         _ -> ok
     end.
 
+%TODO como colocar os menus no lobby, será que pode ser mapa Pid =>?
+%Poder fechar estes processos também
 main_menu(Sock) ->
     receive
         {tcp, _, "register:" ++ DataN} ->
