@@ -393,7 +393,7 @@ player(Sock, Game, Username) ->
                     lobby ! {loss, Username, self()},
                     gen_tcp:send(Sock, "game:l\n"),
                     user(Sock, Username);
-                {golden, Game} -> 
+                golden -> 
                     gen_tcp:send(Sock, "game:g\n"),
                     player(Sock, Game, Username);
                 {positions, {XP, YP, AP}, {XE, YE, AE}, Game} -> 
