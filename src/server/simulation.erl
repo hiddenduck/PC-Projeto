@@ -12,6 +12,11 @@
 -define(TICK_RATE, 100).
 -define(BOX_LIMIT, 10).
 -define(DECAY_RATE, 0.0001).
+-define(BOUNDX_MIN, 0).
+-define(BOUNDX_MAX, 700).
+-define(BOUNDY_MIN, 0).
+-define(BOUNDY_MAX, 700).
+            
 
 %start_game spawns a simulator for each player
 %and spawns a ticker to start a game
@@ -136,12 +141,11 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             {V2x_, V2y_, Alfa2_} = process_keys(P2Keys, V2x, V2y, Alfa2, Accel2, AngVel2),
 
             space_server:positions({X1_, Y1_, Alfa1_}, {X2_, Y2_, Alfa2_}, GameInfo, self()),
-            
-            Boundx_min = 0,%TODO tune
-            Boundx_max = 700,%TODO tune
-            Boundy_min = 0,%TODO tune
-            Boundy_max = 700,%TODO tune
-            
+
+            Boundx_min = ?BOUNDX_MIN,
+            Boundx_max = ?BOUNDX_MAX,
+            Boundy_min = ?BOUNDY_MIN,
+            Boundy_max = ?BOUNDY_MAX,
             
             if % check players in bounds
                 X1_ < Boundx_min + ?RADIUS; X1_ > Boundx_max - ?RADIUS; Y1_ < Boundy_min + ?RADIUS; Y1_ > Boundy_max - ?RADIUS ->
