@@ -249,11 +249,11 @@ leaderboard(NumberN, Sock) ->
     lobby ! {top, Int, self()},
     receive 
         {List, lobby} -> 
-            %io:format("~p\n", [lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, "top:", List) ++ "\n"]),
+            io:format("~p\n", [lists:reverse("\n" ++ lists:foldl(fun({U, W}, Acc) -> lists:concat([":", W, "_", U, Acc]) end, 
+                    ":pot", List))]),
             gen_tcp:send(Sock, 
-                lists:foldl(fun({U, W}, Acc) -> lists:concat([Acc, U, "_", W, ":"]) end, 
-                    "top:", List) 
-                ++ "\n") 
+                lists:reverse("\n" ++ lists:foldl(fun({U, W}, Acc) -> lists:concat([":", W, "_", U, Acc]) end, 
+                    ":pot", List))) 
     end.
 
 user(Sock, Username) ->
@@ -374,7 +374,7 @@ player(Sock, Game, Username) ->
         {victory, Game} -> 
             lobby ! {win, Username, self()},
             {ok, Level} = file_manager:win(Username),
-            gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
+            gen_tcp:send(Sock, lists:concat(["game:w:", integer_to_list(Level),"\n"])),
             user(Sock, Username);
         {defeat, Game} -> 
             lobby ! {loss, Username, self()},
@@ -387,7 +387,7 @@ player(Sock, Game, Username) ->
                 {victory, Game} -> 
                     lobby ! {win, Username, self()},
                     {ok, Level} = file_manager:win(Username),
-                    gen_tcp:send(Sock, "game:w:" ++ integer_to_list(Level) ++ "\n"),
+                    gen_tcp:send(Sock, lists:concat(["game:w:", integer_to_list(Level),"\n"])),
                     user(Sock, Username);
                 {defeat, Game} -> 
                     lobby ! {loss, Username, self()},
@@ -409,7 +409,7 @@ player(Sock, Game, Username) ->
                     %io:format("~p ~p ~n", [Add, Remove]),
                     StrList = string:join(  [lists:concat(["+:", X, ":", Y, ":", C]) || {X,Y,C} <- Add] ++
                                             [lists:concat(["-:", X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ":"),
-                    %io:format("~p\n", StrList),
+                    %io:format("~p\n", [StrList]),
                     gen_tcp:send(Sock, lists:concat(["box:", StrList, "\n"])),
                     player(Sock, Game, Username);
                 {score, Player, Enemy, Game} ->
