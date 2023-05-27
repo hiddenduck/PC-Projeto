@@ -136,11 +136,11 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             end;
         tick ->
 
-            {V1x_, V1y_, Alfa1_} = process_keys(P1Keys, V1x, V1y, Alfa1, Accel1, AngVel1),
-            {V2x_, V2y_, Alfa2_} = process_keys(P2Keys, V2x, V2y, Alfa2, Accel2, AngVel2),
-
             {X1_, Y1_} = {X1 + V1x, Y1 + V1y},
             {X2_, Y2_} = {X2 + V2x, Y2 + V2y},
+
+            {V1x_, V1y_, Alfa1_} = process_keys(P1Keys, V1x, V1y, Alfa1, Accel1, AngVel1),
+            {V2x_, V2y_, Alfa2_} = process_keys(P2Keys, V2x, V2y, Alfa2, Accel2, AngVel2),
 
             space_server:positions({X1_, Y1_, Alfa1_}, {X2_, Y2_, Alfa2_}, GameInfo, self()),
             
