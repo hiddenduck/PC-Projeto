@@ -251,15 +251,15 @@ normalize(Angle) ->
 decay(Accel, AngVel) ->
     if 
         Accel > ?BASE_ACCEL ->
-            %io:format("decay Accel ~p", [Accel_]),
             Accel_ = max(Accel - ?DECAY_RATE, ?BASE_ACCEL);
+            %io:format("decay Accel ~p", [Accel_]);
         true ->
             Accel_ = Accel
     end,
     if
         AngVel > ?BASE_ANGVEL ->
-            %io:format("decay AngVel ~p", [AngVel_]),
             AngVel_ = max(AngVel - ?DECAY_RATE, ?BASE_ANGVEL);
+            %io:format("decay AngVel ~p", [AngVel_]);
         true ->
             AngVel_ = AngVel
     end,
@@ -273,13 +273,13 @@ check_color({_, _, C}, {Accel, AngVel}) ->
     %TODO check proper delta
     case C of
         blue ->
-            io:format("blue hit"),
+            io:format("blue hit\n"),
             {Accel + ?DELTA_ACC*(?BASE_ACCEL/Accel), AngVel};
         green ->
-            io:format("green hit"),
+            io:format("green hit\n"),
             {Accel, AngVel + ?DELTA_ANGLE*(?BASE_ANGVEL/AngVel)};
         red ->
-            io:format("red hit"),
+            io:format("red hit\n"),
             {?BASE_ACCEL, ?BASE_ANGVEL}
     end.
 
