@@ -92,11 +92,11 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             {P1Proc, P2Proc} = GameInfo,
             %io:format("tick tock\n"),
             space_server:end_game(
-              if
-                  P1 > P2 -> {P1Proc, P2Proc};
-                  P1 < P2 -> {P2Proc, P1Proc}
-              end),
-                  
+                if
+                    P1 > P2 -> {P1Proc, P2Proc};
+                    P1 < P2 -> {P2Proc, P1Proc}
+                end),
+
             kill_procs([Timer, Ticker]),
             ok;
         stop ->
@@ -120,16 +120,20 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             {P1Proc, P2Proc} = GameInfo,
             space_server:end_game(
               case Player of
-                  P2Proc -> {P1Proc, P2Proc};
-                  P1Proc -> {P2Proc, P1Proc}
+                  P1Proc -> {P2Proc, P1Proc};
+                  P2Proc -> {P1Proc, P2Proc}
               end),
 
             kill_procs([Timer, Ticker]),
             ok;
-        {{A,W,D},P1Proc} ->
-            game(GameInfo, Powerups, P1State, P2State, {A, W, D}, P2Keys, Points, Timer, Ticker, Golden, Flag);
-        {{A,W,D},P2Proc} ->
-            game(GameInfo, Powerups, P1State, P2State, P1Keys, {A, W, D}, Points, Timer, Ticker, Golden, Flag);
+        {{A,W,D},Proc} ->
+            {P1Proc, P2Proc} = GameInfo,
+            case Proc of
+                P1Proc ->
+                    game(GameInfo, Powerups, P1State, P2State, {A, W, D}, P2Keys, Points, Timer, Ticker, Golden, Flag);
+                P2Proc ->
+                    game(GameInfo, Powerups, P1State, P2State, P1Keys, {A, W, D}, Points, Timer, Ticker, Golden, Flag)
+            end;
         tick ->
 
             {V1x_, V1y_, Alfa1_} = process_keys(P1Keys, V1x, V1y, Alfa1, Accel1, AngVel1),
@@ -148,13 +152,13 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             
             if % check players in bounds
                 X1_ < Boundx_min + ?RADIUS; X1_ > Boundx_max - ?RADIUS; Y1_ < Boundy_min + ?RADIUS; Y1_ > Boundy_max - ?RADIUS ->
-                    {P2Proc, P1Proc} = GameInfo,
+                    {P1Proc, P2Proc} = GameInfo,
                     space_server:end_game({P2Proc, P1Proc}),
                     kill_procs([Timer, Ticker]),
                     ok;
 
                 X2_ < Boundx_min + ?RADIUS; X2_ > Boundx_max - ?RADIUS; Y2_ < Boundy_min + ?RADIUS; Y2_ > Boundy_max - ?RADIUS ->
-                    {P2Proc, P1Proc} = GameInfo,
+                    {P1Proc, P2Proc} = GameInfo,
                     space_server:end_game({P1Proc, P2Proc}),
                     kill_procs([Timer, Ticker]),
                     ok;
