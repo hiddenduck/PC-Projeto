@@ -68,7 +68,6 @@ timer(GameSim) ->
             ok
     after
         ?GAME_DURATION ->
-            io:format("times up"),
             GameSim ! timeout
     end.
 
@@ -88,7 +87,6 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
     receive
         _ when Golden, P1 /= P2 -> 
             {P1Proc, P2Proc} = GameInfo,
-            %io:format("tick tock\n"),
             space_server:end_game(
                 if
                     P1 > P2 -> {P1Proc, P2Proc};
@@ -105,7 +103,6 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker, true, Flag);
         timeout when P1 /= P2 -> 
             {P1Proc, P2Proc} = GameInfo,
-            %io:format("tick tock\n"),
             space_server:end_game(
               if
                   P1 > P2 -> {P1Proc, P2Proc};
@@ -255,14 +252,12 @@ decay(Accel, AngVel) ->
     if 
         Accel > ?BASE_ACCEL ->
             Accel_ = max(Accel - ?DECAY_RATE, ?BASE_ACCEL);
-            %io:format("decay Accel ~p", [Accel_]);
         true ->
             Accel_ = Accel
     end,
     if
         AngVel > ?BASE_ANGVEL ->
             AngVel_ = max(AngVel - ?DECAY_RATE, ?BASE_ANGVEL);
-            %io:format("decay AngVel ~p", [AngVel_]);
         true ->
             AngVel_ = AngVel
     end,
@@ -276,13 +271,10 @@ check_color({_, _, C}, {Accel, AngVel}) ->
     %TODO check proper delta
     case C of
         blue ->
-            io:format("blue hit\n"),
             {Accel + ?DELTA_ACC*(?BASE_ACCEL/Accel), AngVel};
         green ->
-            io:format("green hit\n"),
             {Accel, AngVel + ?DELTA_ANGLE*(?BASE_ANGVEL/AngVel)};
         red ->
-            io:format("red hit\n"),
             {?BASE_ACCEL, ?BASE_ANGVEL}
     end.
 
@@ -297,17 +289,13 @@ update_deltas({X, Y}, Powerups, Accel, AngVel) ->
 check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) ->
     Radius = ?RADIUS * 2,%TODO tune
     GuardCol = colision(X1, Y1, X2, Y2, Radius) and (abs(Alfa1 - Alfa2) < math:pi()/2), 
-    %io:format("~w ~w ~w \n", [colision(X1, Y1, X2, Y2, Radius), Alfa1, Alfa2]),
     if GuardCol ->
            GuardPoint = (X2 - X1) * math:cos(Alfa2) + (Y2 - Y1) * math:sin(Alfa2) > 0,
            if GuardPoint ->
-                %io:format("Hit1\n"),
                 hit1;
             true ->
-                %io:format("Hit2\n"),
                 hit2
            end;
         true ->
-            %io:format("NoHit\n"),
             nohit
     end.
