@@ -45,54 +45,71 @@ start_game(Player, Pos) ->
 server(Port) ->
     {ok, LSock} = gen_tcp:listen(Port, [{packet, line}, {reuseaddr, true}]),
     file_manager:start(),
-    spawn(fun() -> acceptor(LSock) end),
-    register(lobby, spawn(fun()-> lobby(#{}, #{}) end)),
+    Acc = spawn(fun() -> acceptor(LSock) end),
+    register(lobby, spawn(fun()-> lobby(#{}, [Acc]) end)),
+    register(win_manager, spawn(fun()-> win_manager(#{}) end)),
     register(game_manager, spawn(fun() -> game_manager(#{}, []) end)),
     receive stop -> 
         file_manager:stop(),
         lobby ! stop,
-        game_manager ! stop
+        game_manager ! stop,
+        win_manager ! stop
     end.
 
 online() ->
     lobby ! {online, self()},
     receive {Users, lobby} -> Users end.
 
-%Lobby como sala tirada diretamente das salas definidas nas aulas prática
-%A chave é o Username porque é necessário para testar quando um utilizador entra
-%TODO Não se pode fazer pelos values? o online já está a ser dumb e já
-lobby(Users, WinMap) ->
-    %io:format("~p\n", [WinMap]),
+win_manager(WinMap) ->
     receive
+        stop -> ok;
         {top, 0, From} ->
             From ! {lists:sort(fun({U1, V1}, {U2, V2}) -> 
-                if V1 =:= V2 -> U1<U2; true -> V1>V2 end end, maps:to_list(WinMap)), lobby},
-            lobby(Users,WinMap);
+                if V1 =:= V2 -> U1<U2; true -> V1>V2 end end, maps:to_list(WinMap)), win_manager},
+            win_manager(WinMap);
         {top, Number, From} ->
             From ! {lists:sublist(lists:sort(fun({U1, V1}, {U2, V2}) -> 
-                if V1 =:= V2 -> U1<U2; true -> V1>V2 end end, maps:to_list(WinMap)), Number), lobby},
-            lobby(Users,WinMap);
-        {online, From} ->
-            From ! {maps:keys(Users), lobby},
-            lobby(Users,WinMap);
-        {win, Username, User} ->
-            io:format("user won ~p ~n", [Username]),
+                if V1 =:= V2 -> U1<U2; true -> V1>V2 end end, maps:to_list(WinMap)), Number), win_manager},
+            win_manager(WinMap);
+        {win, Username} ->
             case maps:find(Username, WinMap) of
                 {ok, OldWins} -> Wins = OldWins + 1;
                 _ -> Wins = 1
             end,
-            lobby(Users#{Username => {unready, User}}, WinMap#{Username => Wins});
-        {enter, Username, User} ->
-            io:format("user entered ~p ~n", [Username]),
-            lobby(Users#{Username => {unready, User}}, WinMap);
+            win_manager(WinMap#{Username => Wins})
+    end.
+
+%Lobby como sala tirada diretamente das salas definidas nas aulas prática
+%A chave é o Username porque é necessário para testar quando um utilizador entra
+%TODO Não se pode fazer pelos values? o online já está a ser dumb e já
+%A AccList tem os PIDS dos Acceptors e dos Main_menu
+lobby(Users, AccList) ->
+    %io:format("~p\n", [WinMap]),
+    receive
+        {online, From} ->
+            From ! {lists:foldl(fun(Value, Acc) -> 
+                case Value of
+                    {_, Username} -> [Username | Acc];
+                    _ -> Acc
+                end end, [], maps:values(Users)), lobby},
+            lobby(Users,AccList);
+        {acc, Pid} ->
+            lobby(Users, [Pid | AccList]);
+        {enter, User} ->
+            io:format("user entered ~n"),
+            lobby(Users#{User => {menu}}, AccList -- [User]);
+        {leave, User} ->
+            io:format("user left ~n"),
+            lobby(maps:remove(User, Users), AccList);
         {leave, Username, User} ->
             io:format("user left ~p ~n", [Username]),
-            lobby(maps:remove(Username, Users), WinMap);
+            lobby(maps:remove(User, Users), AccList);
         {Status, Username, User} ->
             io:format("user ~p ~p ~n", [Status, Username]),
-            lobby(Users#{Username => {unready, User}}, WinMap);
+            lobby(Users#{User => {unready, Username}}, AccList);
         stop -> 
-            lists:map(fun({_, Pid})-> Pid ! stop end, maps:values(Users)),
+            lists:map(fun(Pid)-> Pid ! stop end, maps:keys(Users)),
+            lists:map(fun(Pid)-> exit(Pid, kill) end, AccList),
             io:format("lobby terminado\n")
     end.  
 
@@ -124,12 +141,12 @@ game_manager(RoomMap, GameControllers) ->
                     Controller ! {start, User, game_manager},
                     User ! {ok, Controller, game_manager},
                     New_Map = maps:remove(Level, RoomMap),
-                    game_manager(New_Map, [Controller | GameControllers]);
+                    game_manager(New_Map, GameControllers);
                 _ ->
                     %criar uma espera
                     Controller = spawn(fun()-> ready([User]) end),
                     User ! {ok, Controller, game_manager},
-                    game_manager(RoomMap#{Level => {User, Controller}}, GameControllers)
+                    game_manager(RoomMap#{Level => {User, Controller}}, [Controller ! GameControllers])
             end;
         {end_game, Controller} ->
             game_manager(RoomMap, GameControllers -- [Controller]);
@@ -142,6 +159,7 @@ game_manager(RoomMap, GameControllers) ->
 %O segundo jogador dá ready e depois o primeiro cancela o jogo, enquanto o ecrã dele ainda não recebeu o ok
 ready([FstPlayer]) ->
     receive 
+        stop -> ok;
         %Este abort tem de vir de parte do game_manager aquando de um unready
         {abort, game_manager} -> ok;
         %Não pode receber o abort do primeiro jogador porque isso tem de ser testado no sync_up
@@ -192,7 +210,8 @@ sync_up({FstPlayer, SndPlayer}) ->
 acceptor(LSock) ->
     case gen_tcp:accept(LSock) of
         {ok, Sock}  ->
-            spawn(fun() -> acceptor(LSock) end),
+            spawn(fun() -> lobby ! {acc, self()}, io:format("new acc\n"), acceptor(LSock) end),
+            lobby ! {enter, self()},
             main_menu(Sock);
         _ -> ok
     end.
@@ -201,6 +220,7 @@ acceptor(LSock) ->
 %Poder fechar estes processos também
 main_menu(Sock) ->
     receive
+        stop -> io:format("close\n"), gen_tcp:close(Sock);
         {tcp, _, "register:" ++ DataN} ->
             Data = lists:droplast(DataN),
             [Username, Password] = string:split(Data, ":", all),
@@ -212,30 +232,32 @@ main_menu(Sock) ->
         {tcp, _, "login:" ++ DataN} -> 
             Data = lists:droplast(DataN),
             [Username, Password] = string:split(Data, ":", all),
+            io:format("~p ~p\n", [Username, Password]),
             case file_manager:login(Username, Password) of
                 ok ->
                     Bool = lists:member(Username, online()),
                     if Bool -> 
-                        gen_tcp:send(Sock, "login:user_online\n");
+                        gen_tcp:send(Sock, "login:user_online\n"), main_menu(Sock);
                     true ->
                         case file_manager:check_level(Username) of
                             {ok, Level} ->  
                                 lobby ! {unready, Username, self()},
                                 gen_tcp:send(Sock, "login:ok:" ++ integer_to_list(Level) ++ "\n"),
                                 user(Sock, Username);
-                            {invalid_user, _} -> gen_tcp:send(Sock, "login:invalid_user\n");
-                            _ -> gen_tcp:send(Sock, "login:error\n")
+                            {invalid_user, _} -> gen_tcp:send(Sock, "login:invalid_user\n"), main_menu(Sock);
+                            _ -> gen_tcp:send(Sock, "login:error\n"), main_menu(Sock)
                         end
                     end;
                 invalid_password ->
-                    gen_tcp:send(Sock, "login:invalid_password\n");
+                    gen_tcp:send(Sock, "login:invalid_password\n"),
+                    main_menu(Sock);
                 _ ->
-                    gen_tcp:send(Sock, "login:unknown_username\n")
-            end,
-            main_menu(Sock);
-        {tcp_error, _, _} -> ok;
-        {tcp_closed, _, _} -> ok;
-        _ -> gen_tcp:send(Sock, "login:unknown_command\n")
+                    gen_tcp:send(Sock, "login:unknown_username\n"),
+                    main_menu(Sock)
+            end;
+        {tcp_error, _, _} -> lobby ! {leave, self()};
+        {tcp_closed, _} -> lobby ! {leave, self()};
+        Data -> io:format("what? ~p\n", [Data]), gen_tcp:send(Sock, "login:unknown_command\n")
     end.
 
 logout(Username, Sock) ->
@@ -246,11 +268,10 @@ logout(Username, Sock) ->
 leaderboard(NumberN, Sock) ->
     Number = lists:droplast(NumberN),
     {Int, []} = string:to_integer(["0" | Number]),
-    lobby ! {top, Int, self()},
+    win_manager ! {top, Int, self()},
     receive 
-        {List, lobby} -> 
-            io:format("~p\n", [lists:reverse("\n" ++ lists:foldl(fun({U, W}, Acc) -> lists:concat([":", W, "_", U, Acc]) end, 
-                    ":pot", List))]),
+        {List, win_manager} -> 
+            %io:format("~p\n", [lists:reverse("\n" ++ lists:foldl(fun({U, W}, Acc) -> lists:concat([":", W, "_", U, Acc]) end, ":pot", List))]),
             gen_tcp:send(Sock, 
                 lists:reverse("\n" ++ lists:foldl(fun({U, W}, Acc) -> lists:concat([":", W, "_", U, Acc]) end, 
                     ":pot", List))) 
@@ -288,6 +309,7 @@ user(Sock, Username) ->
         {tcp_error, _, _} ->
             lobby ! {leave, Username, self()};
         stop ->
+            io:format("close ~p\n", [Username]),
             gen_tcp:close(Sock);
         _ ->
             user(Sock, Username)
@@ -335,6 +357,7 @@ user_ready(Sock, Game, Username) ->
             unready(Username, Game),
             lobby ! {leave, Username, self()};
         stop ->
+            io:format("close ~p\n", [Username]),
             gen_tcp:close(Sock);
         _ ->
             user_ready(Sock, Game, Username)
@@ -362,17 +385,24 @@ loading(Sock, Game, Username) ->
         {tcp_error, _, _} -> 
             leave_game(Username, Game);
         stop ->
+            io:format("close ~p\n", [Username]),
             gen_tcp:close(Sock);
         _ -> 
             loading(Sock, Game, Username)
     end.
 
+win(Username) ->
+    lobby ! {win, Username, self()},
+    win_manager ! {win, Username, self()}.
+
 player(Sock, Game, Username) ->
     %io:format("player_from\n"),
     receive
-        stop -> gen_tcp:close(Sock);
+        stop -> 
+            io:format("close ~p\n", [Username]),
+            gen_tcp:close(Sock);
         {victory, Game} -> 
-            lobby ! {win, Username, self()},
+            win(Username),
             {ok, Level} = file_manager:win(Username),
             gen_tcp:send(Sock, lists:concat(["game:w:", integer_to_list(Level),"\n"])),
             user(Sock, Username);
@@ -383,7 +413,9 @@ player(Sock, Game, Username) ->
         after 0 ->
             %io:format("player_from_after\n"),
             receive
-                stop -> gen_tcp:close(Sock);
+                stop -> 
+                    io:format("close ~p\n", [Username]),
+                    gen_tcp:close(Sock);
                 {victory, Game} -> 
                     lobby ! {win, Username, self()},
                     {ok, Level} = file_manager:win(Username),
