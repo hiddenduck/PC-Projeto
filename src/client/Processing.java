@@ -268,8 +268,9 @@ public class Processing extends PApplet{
     rect(width*0.45f, height*0.5f, width*0.1f, height*0.1f);
     textSize(width*0.05f);
     fill(188, 255, 18);
-    text("Username: "+this.user.getText(),width*0.45f,height*0.15f);
-    text("Level: " + this.level,width*0.45f,height*0.2f);
+    textAlign(CENTER, CENTER);
+    text("Username: "+this.user.getText(),width*0.5f,height*0.15f);
+    text("Level: " + this.level,width*0.5f,height*0.2f);
 
     textSize(width*0.08f);
     if(isReady){

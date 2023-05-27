@@ -38,7 +38,6 @@ public class ConnectionManager implements AutoCloseable{
             String message;
             try {
                 while ((message = input.readLine())!=null) {
-                    System.out.println(message);
                     String[] typeMessage = message.split(":", 2);
                     Queue<String> typeQueue = this.typeMap.get(typeMessage[0]);
                     synchronized (typeQueue) {
