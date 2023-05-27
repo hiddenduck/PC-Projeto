@@ -74,12 +74,15 @@ public class ConnectionManager implements AutoCloseable{
     }
 
     public void close() throws IOException, InterruptedException{
-        for(Queue<String> queue: typeMap.values()){
-            queue.add(null);
-        }
         this.socket.close();
         this.input.close();
         this.output.close();
         this.reader.join();
+        for(Queue<String> queue: typeMap.values()){
+            synchronized (queue) {
+                queue.add(null);
+                queue.notify();
+            }
+        }
     }
 }
