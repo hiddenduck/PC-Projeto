@@ -417,7 +417,7 @@ player(Sock, Game, Username) ->
                     io:format("close ~p\n", [Username]),
                     gen_tcp:close(Sock);
                 {victory, Game} -> 
-                    lobby ! {win, Username, self()},
+                    win(Username),
                     {ok, Level} = file_manager:win(Username),
                     gen_tcp:send(Sock, lists:concat(["game:w:", integer_to_list(Level),"\n"])),
                     user(Sock, Username);
