@@ -146,7 +146,7 @@ game_manager(RoomMap, GameControllers) ->
                     %criar uma espera
                     Controller = spawn(fun()-> ready([User]) end),
                     User ! {ok, Controller, game_manager},
-                    game_manager(RoomMap#{Level => {User, Controller}}, [Controller ! GameControllers])
+                    game_manager(RoomMap#{Level => {User, Controller}}, [Controller | GameControllers])
             end;
         {end_game, Controller} ->
             game_manager(RoomMap, GameControllers -- [Controller]);
