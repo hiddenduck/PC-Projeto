@@ -273,9 +273,9 @@ check_color({_, _, C}, {Accel, AngVel}) ->
     %TODO check proper delta
     case C of
         blue ->
-            {lists:min([?MAX_VALUE_ACCEL, Accel + ?DELTA_ACC*(?BASE_ACCEL/Accel)]), AngVel};
+            {min(?MAX_VALUE_ACCEL, Accel + ?DELTA_ACC*(?BASE_ACCEL/Accel)), AngVel};
         green ->
-            {Accel, lists:min([?MAX_VALUE_ANGVEL, AngVel + ?DELTA_ANGLE*(?BASE_ANGVEL/AngVel)])};
+            {Accel, min(?MAX_VALUE_ANGVEL, AngVel + ?DELTA_ANGLE*(?BASE_ANGVEL/AngVel))};
         red ->
             {?BASE_ACCEL, ?BASE_ANGVEL}
     end.
