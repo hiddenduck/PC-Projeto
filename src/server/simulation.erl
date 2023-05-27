@@ -86,10 +86,10 @@ kill_procs(Procs) ->
 game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker, Golden, Flag) ->
     {{X1,Y1}, {V1x, V1y}, Alfa1, {Accel1, AngVel1}} = P1State,
     {{X2,Y2}, {V2x, V2y}, Alfa2, {Accel2, AngVel2}} = P2State,
-    {P1Proc, P2Proc} = GameInfo,
     {P1, P2} = Points,
     receive
         _ when Golden, P1 /= P2 -> 
+            {P1Proc, P2Proc} = GameInfo,
             %io:format("tick tock\n"),
             space_server:end_game(
               if
@@ -103,9 +103,10 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             kill_procs([Timer, Ticker]),
             ok;
         timeout when P1 == P2 ->
-            space_server:golden_point(P1Proc, P2Proc),
+            space_server:golden_point(GameInfo),
             game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker, true, Flag);
         timeout when P1 /= P2 -> 
+            {P1Proc, P2Proc} = GameInfo,
             %io:format("tick tock\n"),
             space_server:end_game(
               if
@@ -116,6 +117,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             kill_procs([Timer, Ticker]),
             ok;
         {forfeit, Player} ->
+            {P1Proc, P2Proc} = GameInfo,
             space_server:end_game(
               case Player of
                   P2Proc -> {P1Proc, P2Proc};
@@ -136,7 +138,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             {X1_, Y1_} = {X1 + V1x, Y1 + V1y},
             {X2_, Y2_} = {X2 + V2x, Y2 + V2y},
 
-            space_server:positions({X1_, Y1_, Alfa1_}, {X2_, Y2_, Alfa2_}, P1Proc, P2Proc, self()),
+            space_server:positions({X1_, Y1_, Alfa1_}, {X2_, Y2_, Alfa2_}, GameInfo, self()),
             
             Boundx_min = 0,%TODO tune
             Boundx_max = 700,%TODO tune
@@ -146,13 +148,13 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
             
             if % check players in bounds
                 X1_ < Boundx_min + ?RADIUS; X1_ > Boundx_max - ?RADIUS; Y1_ < Boundy_min + ?RADIUS; Y1_ > Boundy_max - ?RADIUS ->
-                    
+                    {P2Proc, P1Proc} = GameInfo,
                     space_server:end_game({P2Proc, P1Proc}),
                     kill_procs([Timer, Ticker]),
                     ok;
 
                 X2_ < Boundx_min + ?RADIUS; X2_ > Boundx_max - ?RADIUS; Y2_ < Boundy_min + ?RADIUS; Y2_ > Boundy_max - ?RADIUS ->
-                    
+                    {P2Proc, P1Proc} = GameInfo,
                     space_server:end_game({P1Proc, P2Proc}),
                     kill_procs([Timer, Ticker]),
                     ok;
@@ -167,7 +169,7 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                             Powerups_ = Powerups;
                         {Powerup, HitList} ->
                             Powerups_ = Powerup ++ Powerups, % this is the correct order to do this in because erlang copies the left list not the right https://www.erlang.org/doc/efficiency_guide/listhandling
-                            space_server:boxes(Powerup, HitList, P1Proc, P2Proc, self())
+                            space_server:boxes(Powerup, HitList, GameInfo, self())
                     end,
                     
                     case check_player_colision({X1, Y1}, {X2, Y2}, Alfa1, Alfa2) of
@@ -177,8 +179,8 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                             P2State_ = {{X_, Y_}, {0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}},
                             Points_ = {P1 + 1, P2},
 
-                            space_server:positions({X1_, Y1_, Alfa1_}, {X_, Y_, 0}, P1Proc, P2Proc, self()),
-                            space_server:score(P1 + 1, P2, P1Proc, P2Proc, self());
+                            space_server:positions({X1_, Y1_, Alfa1_}, {X_, Y_, 0}, GameInfo, self()),
+                            space_server:score(P1 + 1, P2, GameInfo, self());
 
                         hit2 ->
                             {X_, Y_} = get_random_pos([{X2_, Y2_, Alfa2_} | Powerups], {Boundx_max, Boundy_max}),
@@ -186,8 +188,8 @@ game(GameInfo, Powerups, P1State, P2State, P1Keys, P2Keys, Points, Timer, Ticker
                             P1State_ = {{X_, Y_}, {0, 0}, 0, {?BASE_ACCEL, ?BASE_ANGVEL}},
                             Points_ = {P1, P2 + 1},
 
-                            space_server:positions({X_, Y_, 0}, {X2_, Y2_, Alfa2_}, P1Proc, P2Proc, self()),
-                            space_server:score(P1, P2 + 1, P1Proc, P2Proc, self());
+                            space_server:positions({X_, Y_, 0}, {X2_, Y2_, Alfa2_}, GameInfo, self()),
+                            space_server:score(P1, P2 + 1, GameInfo, self());
 
                         nohit ->
                             P1State_ = {{X1_, Y1_}, {V1x_, V1y_}, Alfa1_, {Accel1_, AngVel1_}},
