@@ -236,7 +236,7 @@ public class Processing extends PApplet{
     fill(206, 235, 251);
     triangle(width*0.05f, 0, 0, height*0.025f, width*0.05f, height*0.05f);
     textSize(width*0.1f);
-    text("Page " + (this.topMaxLimit%8+1), width*0.5f, height*0.025f);
+    text("Page " + (this.topMinLimit/8+1), width*0.5f, height*0.025f);
     textSize(width*0.05f);
     for(int i=this.topMinLimit; i<topMaxLimit; i++){
       text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*0.2f+height*0.06f*(i%8));
