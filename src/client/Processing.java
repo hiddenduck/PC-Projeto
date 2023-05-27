@@ -302,6 +302,12 @@ public class Processing extends PApplet{
       this.gameState.boxes = new HashSet<>();
       this.isInGame = true;
     } else if(Objects.equals(gameCopy.gameStatus, "a")){
+      this.gameState.lrw.readLock().lock();
+      try{
+        this.gameState.gameStatus = "i";
+      } finally {
+        this.gameState.lrw.readLock().unlock();
+      }
       this.isReady = false;
     }
   }
