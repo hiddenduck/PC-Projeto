@@ -44,11 +44,50 @@ class CommunicatorBox extends Communicator{
     public CommunicatorBox(ConnectionManager connectionManager, GameState gameState){
         super(connectionManager, gameState);
     }
-
+    public void run(){
+        String box = null;
+        try {
+            while((box=this.connectionManager.receive("box"))!=null){
+                boolean remove=false, add=false;
+                String[] addRemove = box.split("_");
+                String[] addBoxes = new String[0], removeBoxes = new String[0];
+                if(box.charAt(0)!='_') {
+                    addBoxes = addRemove[0].split(",");
+                    add = true;
+                }
+                if(addRemove.length==2) {
+                    removeBoxes = addRemove[1].split(",");
+                    remove = true;
+                }
+                String[] boxN;
+                this.gameState.lrw.readLock().lock();
+                try {
+                    if(add) {
+                        for (String addBox : addBoxes) {
+                            boxN = addBox.split(":");
+                            this.gameState.putBox(new Triple(Float.parseFloat(boxN[0]), Float.parseFloat(boxN[1]), boxN[2].charAt(0)));
+                        }
+                    }
+                    if(remove) {
+                        for (String removeBox : removeBoxes) {
+                            boxN = removeBox.split(":");
+                            this.gameState.removeBox(new Triple(Float.parseFloat(boxN[0]), Float.parseFloat(boxN[1]), boxN[2].charAt(0)));
+                        }
+                    }
+                } finally {
+                    this.gameState.lrw.readLock().unlock();
+                }
+            }
+        } catch (java.io.IOException|java.lang.InterruptedException e){
+            e.printStackTrace();
+        }
+    }
+    /*
     public void run(){
         String box = null;
         try{
             while((box = this.connectionManager.receive("box"))!=null){
+                System.out.println(box);
                 boolean minus = true, plus = false;
                 int i = 0, j = 0;
                 StringBuilder temp = new StringBuilder();
@@ -112,6 +151,7 @@ class CommunicatorBox extends Communicator{
             e.printStackTrace();
         }
     }
+    */
 }
 
 class CommunicatorPoint extends Communicator{

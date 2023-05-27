@@ -106,6 +106,10 @@ public class GameState {
         }
     }
 
+    public void removeBox(Triple box){
+        this.boxes.remove(box);
+    }
+
     public void setGameStatus(String s){
         this.gameStatus = s;
     }

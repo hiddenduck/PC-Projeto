@@ -441,8 +441,10 @@ player(Sock, Game, Username) ->
                     %box:+:x:y:color:-:x:y:color
                     %[{x1,y1,color1}, {x2,y2,color2}]
                     %io:format("~p ~p ~n", [Add, Remove]),
-                    StrList = string:join(  [lists:concat(["+:", X, ":", Y, ":", C]) || {X,Y,C} <- Add] ++
-                                            [lists:concat(["-:", X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ":"),
+                    %StrList = string:join(  [lists:concat([X, ":", Y, ":", C]) || {X,Y,C} <- Add] ++ ["_"] ++
+                    %                        [lists:concat([X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ","),
+                    StrList = string:concat(string:concat(string:join(  [lists:concat([X, ":", Y, ":", C]) || {X,Y,C} <- Add], ","), "_"),
+                                            string:join([lists:concat([X, ":", Y, ":", C]) || {X,Y,C} <- Remove], ",")),
                     %io:format("~p\n", [StrList]),
                     gen_tcp:send(Sock, lists:concat(["box:", StrList, "\n"])),
                     player(Sock, Game, Username);
