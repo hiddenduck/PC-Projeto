@@ -1,5 +1,5 @@
 -module(space_server).
--export([start/1, stop/0, end_game/1, start_game/2, positions/5, boxes/5, score/5, golden_point/2, online/0]). % server:start(1234)
+-export([start/1, stop/0, end_game/1, start_game/2, positions/4, boxes/4, score/4, golden_point/1, online/0]). % server:start(1234)
                             % nc localhost 1234
                             % netstat -p tcp -an | grep 1234
 
@@ -8,24 +8,24 @@ start(Port) -> register(?MODULE, spawn(fun() -> server(Port) end)), ok.
 stop() -> ?MODULE ! stop.
 
 %Avisa os jogadores do Golden Point
-golden_point(FstPlayer, SndPlayer) ->
+golden_point({FstPlayer, SndPlayer}) ->
     FstPlayer ! golden,
     SndPlayer ! golden.
 
 %Recebe as posições da simulação em dois tuplos
 %{xp,yp,ap}, {xe,ye,ap}
-positions(FstPositions, SndPositions, FstPlayer, SndPlayer, Game) ->
+positions(FstPositions, SndPositions, {FstPlayer, SndPlayer}, Game) ->
     FstPlayer ! {positions, FstPositions, SndPositions, Game},
     SndPlayer ! {positions, SndPositions, FstPositions , Game}.
 
 %Recebe as posições a adicionar e remover das caixas em listas de tuplos
 %[{x1,y1,color1},{x2,y2,color2}]
-boxes(Add, Remove, FstPlayer, SndPlayer, Game) ->
+boxes(Add, Remove, {FstPlayer, SndPlayer}, Game) ->
     FstPlayer ! {boxes, Add, Remove, Game},
     SndPlayer ! {boxes, Add, Remove, Game}.
 
 %Recebe a pontuação de ambos os jogadores
-score(FstPoints, SndPoints, FstPlayer, SndPlayer, Game) ->
+score(FstPoints, SndPoints, {FstPlayer, SndPlayer}, Game) ->
     FstPlayer ! {score, FstPoints, SndPoints, Game},
     SndPlayer ! {score, SndPoints, FstPoints, Game}.
 
