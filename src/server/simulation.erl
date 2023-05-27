@@ -16,6 +16,8 @@
 -define(BOUNDX_MAX, 700).
 -define(BOUNDY_MIN, 0).
 -define(BOUNDY_MAX, 700).
+-define(MAX_VALUE_ACCEL, 0.625). % 5 * valor base
+-define(MAX_VALUE_ANGVEL, 0.625). % 5 * valor base
             
 
 %start_game spawns a simulator for each player
@@ -271,9 +273,9 @@ check_color({_, _, C}, {Accel, AngVel}) ->
     %TODO check proper delta
     case C of
         blue ->
-            {Accel + ?DELTA_ACC*(?BASE_ACCEL/Accel), AngVel};
+            {lists:min([?MAX_VALUE_ACCEL, Accel + ?DELTA_ACC*(?BASE_ACCEL/Accel)]), AngVel};
         green ->
-            {Accel, AngVel + ?DELTA_ANGLE*(?BASE_ANGVEL/AngVel)};
+            {Accel, lists:min([?MAX_VALUE_ANGVEL, AngVel + ?DELTA_ANGLE*(?BASE_ANGVEL/AngVel)])};
         red ->
             {?BASE_ACCEL, ?BASE_ANGVEL}
     end.
