@@ -5,7 +5,7 @@
 -define(DELTA_ANGLE, 0.125).
 -define(DELTA_ACC, 0.125).
 -define(RADIUS, 15).
--define(GAME_DURATION, 60000).
+-define(GAME_DURATION, 120000).
 -define(POWER_CHANCE, 100).
 -define(BASE_ACCEL, 0.125).
 -define(BASE_ANGVEL, 0.125).
@@ -46,13 +46,6 @@ change_speed(PlayerSim) ->
 
 change_angle(PlayerSim, Dir) ->
     PlayerSim ! {change_direction, Dir}.
-
-%sleep function yoinked from stor
-%may be better function in erlang
-sleep(T) ->
-    receive after T ->
-        true
-    end.
 
 ticker(GameSim) ->
     receive
