@@ -393,7 +393,7 @@ loading(Sock, Game, Username) ->
 
 win(Username) ->
     lobby ! {win, Username, self()},
-    win_manager ! {win, Username, self()}.
+    win_manager ! {win, Username}.
 
 player(Sock, Game, Username) ->
     %io:format("player_from\n"),
