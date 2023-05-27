@@ -239,12 +239,12 @@ public class Processing extends PApplet{
     text("Page " + (this.topMaxLimit/8+1), width*0.5f, height*0.025f);
     textSize(width*0.05f);
     for(int i=this.topMinLimit; i<topMaxLimit; i++){
-      text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*0.2f+height*0.06f*i);
+      text(this.topNames.get(i)+ " " + this.topLevels.get(i), width*0.5f, height*0.2f+height*0.06f*(i%8));
     }
 
-    if(this.topMinLimit+11 <= this.topNames.size())
+    if(this.topMaxLimit < this.topNames.size())
       triangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f);
-    if(this.topMinLimit>=10)
+    if(this.topMinLimit>=8)
       triangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f);
   }
 
@@ -578,7 +578,7 @@ public class Processing extends PApplet{
             this.topLevels = new ArrayList<>();
             if(!Objects.equals(leaders, "")){
               String[] namesWin = leaders.split(":");
-              this.topMaxLimit = Math.min(12, namesWin.length);
+              this.topMaxLimit = Math.min(8, namesWin.length);
               for(String nameWin: namesWin) {
                 String[] stats = nameWin.split("_");
                 this.topNames.add(stats[0]);
@@ -597,11 +597,12 @@ public class Processing extends PApplet{
       } else if(Objects.equals(this.menu, "topMenu")){
         if(isInsideTriangle(width*0.05f, 0, 0, width*0.025f, width*0.05f, width*0.05f)){
           this.menu = "loggedMenu";
-        } else if(this.topMinLimit+13 <= this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
-          this.topMinLimit += 12;
-          this.topMaxLimit = Math.min(12, this.topNames.size()-12);
-        } else if(this.topMinLimit>=10 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
-          this.topMinLimit -= 12;
+        } else if(this.topMinLimit < this.topNames.size() && isInsideTriangle(width*0.95f, (float) height, (float) width, height*0.975f, width*0.95f, height*0.95f)){
+          this.topMinLimit += 8;
+          this.topMaxLimit = Math.min(this.topMaxLimit+8, this.topNames.size());
+        } else if(this.topMinLimit>=2 && isInsideTriangle(width*0.05f, (float) height, 0, height*0.975f, width*0.05f, height*0.95f)){
+          this.topMaxLimit = Math.min(this.topMaxLimit-7, this.topNames.size());
+          this.topMinLimit -= 8;
         }
       } else if(Objects.equals(this.menu, "deleteMenu")){
         this.password.select(mouseX,mouseY);
