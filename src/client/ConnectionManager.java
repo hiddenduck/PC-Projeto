@@ -42,11 +42,10 @@ public class ConnectionManager implements AutoCloseable{
                     Queue<String> typeQueue = this.typeMap.get(typeMessage[0]);
                     synchronized (typeQueue) {
                         typeQueue.add(typeMessage[1]);
-                        typeQueue.notifyAll();
+                        typeQueue.notify();
                     }
                 }
             } catch (IOException e){
-                e.printStackTrace();
             }
         });
         this.reader.start();
@@ -70,7 +69,7 @@ public class ConnectionManager implements AutoCloseable{
                 typeQueue.wait();
             }
         }
-        //houve um erro estranho com o typeQueue que já não existia
+
         return typeQueue.remove();
     }
 

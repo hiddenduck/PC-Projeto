@@ -405,7 +405,6 @@ public class Processing extends PApplet{
       }
 
       if(this.moving.changed && !(this.moving.keys[0].equals(this.moving.keys[2]) && this.moving.keys[0].equals("t"))){
-        System.out.println("estou a enviar moves");
         this.connectionManager.send("move", this.moving.getMessage());
         this.moving.changed = false;
       }
