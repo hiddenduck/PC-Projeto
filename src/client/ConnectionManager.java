@@ -68,9 +68,8 @@ public class ConnectionManager implements AutoCloseable{
             while (typeQueue.isEmpty()) {
                 typeQueue.wait();
             }
+            return typeQueue.remove();
         }
-
-        return typeQueue.remove();
     }
 
     public void close() throws IOException, InterruptedException{
