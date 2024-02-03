@@ -53,6 +53,3 @@ Intermediaries between the drawing thread and the socket-reading thread, handlin
 
 #### 3.4 Processing
 Handles drawing, menus, and main functionality. Different menus are implemented, each with its own logic. Communication between the client and server is done directly in the processing thread. The GameState is shared between threads using locks for concurrency control.
-
-### 4. Conclusion
-This assignment provided valuable insights into client-server communication through TCP and explicit lock-based concurrency control in Java. The server implementation demonstrated Erlang's message passing system. The work aligns with the assignment expectations and enhances our understanding of concurrent programming concepts for future applications.
